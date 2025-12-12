@@ -242,7 +242,7 @@ Gifted.ev.on("messages.upsert", async ({ messages }) => {
             const deletedMsg = giftech.chats[key.remoteJid].find(m => m.key.id === deletedId);
             if (!deletedMsg?.message) return;
 
-            const deleter = key.participantPn || key.participant || key.remoteJid;
+            const deleter = key.participantPn || key.participant || key.participantAlt || key.remoteJidAlt || key.remoteJid;
             const deleterPushName = key.pushName || ms.pushName;
             
             if (deleter === botJid || deleter === botOwnerJid) return;
@@ -396,7 +396,7 @@ groupName = groupInfo?.subject || '';
 
 const sendr = ms.key.fromMe 
                 ? (Gifted.user.id.split(':')[0] + '@s.whatsapp.net' || Gifted.user.id) 
-                : (ms.key.participantPn || ms.key.senderPn || ms.key.participant || ms.key.remoteJid);
+                : (ms.key.participantPn || ms.key.senderPn || ms.key.participant || ms.key.participantAlt || ms.key.remoteJidAlt || ms.key.remoteJid);
 let participants = [];
 let groupAdmins = [];
 let groupSuperAdmins = [];
