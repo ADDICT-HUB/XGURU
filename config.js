@@ -38,7 +38,7 @@ module.exports = {
     AUTO_REPLY : process.env.AUTO_REPLY || 'false',
     AUTO_READ_MESSAGES : process.env.AUTO_READ_MESSAGES || 'false', // true/commands/false
     AUTO_BIO : process.env.AUTO_BIO || 'false',
-    AUTO_BLOCK: process.env.AUTO_BLOCK || '212,233',
+    AUTO_BLOCK: process.env.AUTO_BLOCK || '',
     YT: process.env.YT || 'youtube.com/@giftedtechnexus',
     NEWSLETTER_JID: process.env.NEWSLETTER_JID || '120363408839929349@newsletter',
     NEWSLETTER_URL: process.env.NEWSLETTER_URL || 'https://whatsapp.com/channel/0029Vb3hlgX5kg7G0nFggl0Y',
