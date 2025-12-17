@@ -390,9 +390,9 @@ const hasEntryPointContext =
   ms.message?.documentMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
   ms.message?.audioMessage?.contextInfo?.entryPointConversionApp === "whatsapp";
 
-const isMessageYourself = hasEntryPointContext && ms.key.remoteJid.endsWith('@lid') && ms.key.fromMe;
+const isMessageYourself = hasEntryPointContext && ms.key?.remoteJid.endsWith('@lid') && ms.key?.fromMe;
 
-const from = isMessageYourself ? botId : standardizeJid(ms.key.remoteJid);
+const from = isMessageYourself ? botId : standardizeJid(ms.key?.remoteJid);
 
             // const botId = standardizeJid(Gifted.user?.id);
             const isGroup = from.endsWith("@g.us");
