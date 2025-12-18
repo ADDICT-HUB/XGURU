@@ -4,7 +4,7 @@ if (fs.existsSync('.env'))
 const path = require("path");
 
 module.exports = { 
-    SESSION_ID: process.env.SESSION_ID || '',
+    SESSION_ID: process.env.SESSION_ID, // Session ID must be put in .env to avoid loss during updating
     PREFIX: process.env.PREFIX || ".",
     OWNER_NAME: process.env.OWNER_NAME || "𝐆𝐈𝐅𝐓𝐄𝐃 𝐓𝐄𝐂𝐇",
     OWNER_NUMBER : process.env.OWNER_NUMBER || "",  // put only one number
