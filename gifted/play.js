@@ -418,7 +418,7 @@ gmd({
       const firstVideo = searchResponse.videos[0];
       const videoUrl = firstVideo.url;
 
-        const audioApi = `${GiftedTechApi}/api/download/ytmp4?stream=true&apikey=${GiftedApiKey}&url=${encodeURIComponent(videoUrl)}`;
+        const videoApi = `${GiftedTechApi}/api/download/ytmp4?stream=true&apikey=${GiftedApiKey}&url=${encodeURIComponent(videoUrl)}`;
 
       const response = await gmdBuffer(videoApi);
 
