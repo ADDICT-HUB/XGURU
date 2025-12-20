@@ -242,7 +242,7 @@ Gifted.ev.on("messages.upsert", async ({ messages }) => {
             const deletedMsg = giftech.chats[key.remoteJid].find(m => m.key.id === deletedId);
             if (!deletedMsg?.message) return;
 
-            const deleter = key.participantPn || key.senderPn || key.participantAlt || key.remoteJidAlt || key.participant || key.remoteJid;
+            const deleter = key.senderPn || key.participantAlt || key.participantPn || key.remoteJidAlt || key.participant || key.remoteJid;
             const deleterPushName = key.pushName || ms.pushName;
             
             if (deleter === botJid || deleter === botOwnerJid) return;
