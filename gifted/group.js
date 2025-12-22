@@ -232,6 +232,9 @@ gmd({
 }, async (from, Gifted, conText) => {
   const { reply, react, sender, quotedUser, superUser, isSuperAdmin, isAdmin, isGroup, isBotAdmin, mek, groupAdmins, groupSuperAdmins } = conText;
 
+  console.log("DEBUG - quotedUser received:", quotedUser);
+  console.log("DEBUG - quotedUser type:", typeof quotedUser);
+  
   if (!isGroup) {
     return reply("This command only works in groups!");
   }
@@ -251,31 +254,25 @@ gmd({
     return reply(`@${userNumber} you are not an admin`, { mentions: [`${userNumber}@s.whatsapp.net`] });
   }
 
-  let result = quotedUser;
+  let finalResult = quotedUser;
   
-  if (result && result.includes('@lid')) {
-    result = result.replace('@', '') + '@lid';
-  }
-
-  let finalResult = result;
-
-  if (result && result.includes('@lid')) {
+  if (quotedUser && quotedUser.includes('@lid')) {
     try {
-      finalResult = await Gifted.getJidFromLid(result);
-      if (!finalResult) {
-        await react("❌");
-        return reply("Could not resolve user from the quoted message.");
-      }
+      const cleanLid = quotedUser.startsWith('@') ? quotedUser.substring(1) : quotedUser;
+      finalResult = await Gifted.getJidFromLid(cleanLid);
+      console.log("DEBUG - Converted lid to jid:", finalResult);
     } catch (error) {
-      console.error("Error resolving lid:", error);
+      console.error("Error converting lid:", error);
       await react("❌");
-      return reply("Error resolving user from the quoted message.");
+      return reply("Error converting user ID.");
     }
   }
-
-  if (!finalResult) {
+  
+//  console.log("DEBUG - finalResult:", finalResult);
+  
+  if (!finalResult || finalResult === '') {
     await react("❌");
-    return reply("Could not identify the user to promote.");
+    return reply("Could not identify the user. Please make sure you're replying to a valid message or mentioning a user.");
   }
 
   const standardizedFinalResult = finalResult.toLowerCase();
