@@ -1,24 +1,30 @@
-evt.commands.push({
-    pattern: "anticall",
-    desc: "Toggle Anti-Call Mode",
-    react: "📵",
-    type: "user",
-    async function(from, Gifted, args, conText) {
-        const reply = async (text) => {
-            await Gifted.sendMessage(from, { text }, { quoted: conText.m });
-        };
+const fs = require("fs");
+const path = require("path");
+const { gmd } = require("../gift");
 
-        let configPath = path.join(__dirname, "../config.js");
-        let config = require(configPath);
+const settingsPath = path.join(__dirname, "../settings.js");
 
-        const arg = args[0]?.toLowerCase();
-        if (!arg || !["on","off"].includes(arg)) return await reply("Usage: .anticall on/off");
+gmd({
+  pattern: "anticall",
+  react: "📞",
+  category: "owner",
+  description: "Toggle Anti Call",
+}, async (from, Gifted, conText) => {
+  const { reply, react, isSuperUser, config } = conText;
+  if (!isSuperUser) return reply("❌ Owner Only Command!");
 
-        config.ANTICALL = arg === "on" ? "true" : "false";
+  try {
+    const val = config.ANTI_CALL === "true" ? "false" : "true";
+    config.ANTI_CALL = val;
 
-        fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
-        delete require.cache[require.resolve(configPath)];
+    let txt = fs.readFileSync(settingsPath, "utf-8");
+    txt = txt.replace(/ANTI_CALL\s*:\s*["'](true|false)["']/, `ANTI_CALL: "${val}"`);
+    fs.writeFileSync(settingsPath, txt);
 
-        await reply(`✅ Anti-Call is now ${config.ANTICALL === "true" ? "enabled" : "disabled"}`);
-    }
+    await react("✅");
+    reply(`📞 Anti Call is now ${val === "true" ? "ENABLED" : "DISABLED"}`);
+  } catch (e) {
+    console.log(e);
+    reply("❌ Failed to toggle Anti Call");
+  }
 });
