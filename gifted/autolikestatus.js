@@ -1,26 +1,29 @@
-evt.commands.push({
-    pattern: "autolikestatus",
-    desc: "Toggle Auto-Like Status",
-    react: "💜",
-    type: "user",
-    async function(from, Gifted, args, conText) {
-        const reply = async (text) => {
-            await Gifted.sendMessage(from, { text }, { quoted: conText.m });
-        };
+const fs = require("fs");
+const path = require("path");
+const { gmd } = require("../gift");
 
-        let configPath = path.join(__dirname, "../config.js");
-        let config = require(configPath);
+const settingsPath = path.join(__dirname, "../settings.js");
 
-        const arg = args[0]?.toLowerCase();
-        if (!arg || !["on","off"].includes(arg)) {
-            return await reply("Usage: .autolikestatus on/off");
-        }
+gmd({
+  pattern: "autoreadstatus",
+  react: "👀",
+  category: "owner",
+  description: "Toggle Auto Read Status",
+}, async (from, Gifted, conText) => {
+  const { reply, react, isSuperUser, config } = conText;
+  if (!isSuperUser) return reply("❌ Owner Only Command!");
 
-        config.AUTO_LIKE_STATUS = arg === "on" ? "true" : "false";
+  try {
+    const val = config.AUTO_READ_STATUS === "true" ? "false" : "true";
+    config.AUTO_READ_STATUS = val;
 
-        fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
-        delete require.cache[require.resolve(configPath)];
+    let txt = fs.readFileSync(settingsPath, "utf-8");
+    txt = txt.replace(/AUTO_READ_STATUS\s*:\s*["'](true|false)["']/, `AUTO_READ_STATUS: "${val}"`);
+    fs.writeFileSync(settingsPath, txt);
 
-        await reply(`✅ Auto-Like Status is now ${config.AUTO_LIKE_STATUS === "true" ? "enabled" : "disabled"}`);
-    }
+    await react("✅");
+    reply(`👀 Auto Read Status ${val === "true" ? "ENABLED" : "DISABLED"}`);
+  } catch (e) {
+    reply("❌ Failed");
+  }
 });
