@@ -28,7 +28,7 @@ gmd({
     const responseTime = Math.floor((elapsed[0] * 1000) + (elapsed[1] / 1000000));
 
 await sendButtons(Gifted, from, {
-  title: 'Gifted-Md Speed',            
+  title: 'X GURU Speed',            
   text: `⚡ Pong: ${responseTime}ms`,    
   footer: `> *${botFooter}*`,            
   buttons: [ 
