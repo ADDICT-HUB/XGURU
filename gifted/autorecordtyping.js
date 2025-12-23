@@ -1,27 +1,37 @@
-evt.commands.push({
-    pattern: "autorecord",
-    desc: "Toggle Auto-Record/Typing",
-    react: "🎙️",
-    type: "user",
-    async function(from, Gifted, args, conText) {
-        const reply = async (text) => {
-            await Gifted.sendMessage(from, { text }, { quoted: conText.m });
-        };
+const fs = require("fs");
+const path = require("path");
+const { gmd } = require("../gift");
 
-        let configPath = path.join(__dirname, "../config.js");
-        let config = require(configPath);
+const settingsPath = path.join(__dirname, "../settings.js");
 
-        const arg = args[0]?.toLowerCase();
-        if (!arg || !["on","off"].includes(arg)) {
-            return await reply("Usage: .autorecord on/off");
-        }
+gmd({
+  pattern: "autorecord",
+  react: "🎙️",
+  category: "owner",
+  description: "Toggle Auto Recording + Typing",
+}, async (from, Gifted, conText) => {
+  const { reply, react, isSuperUser, config } = conText;
+  if (!isSuperUser) return reply("❌ Owner Only Command!");
 
-        config.DM_PRESENCE = arg === "on" ? "recording" : "online";
-        config.GC_PRESENCE = arg === "on" ? "recording" : "online";
+  try {
+    const val = config.AUTO_RECORD === "true" ? "false" : "true";
+    config.AUTO_RECORD = val;
 
-        fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
-        delete require.cache[require.resolve(configPath)];
+    let txt = fs.readFileSync(settingsPath, "utf-8");
+    txt = txt.replace(
+      /AUTO_RECORD\s*:\s*["'](true|false)["']/,
+      `AUTO_RECORD: "${val}"`
+    );
+    fs.writeFileSync(settingsPath, txt);
 
-        await reply(`✅ Auto-Record/Typing is now ${config.DM_PRESENCE === "recording" ? "enabled" : "disabled"}`);
-    }
+    await react("✅");
+    reply(
+      val === "true"
+        ? "🎙️ Auto Recording + Typing ENABLED"
+        : "⛔ Auto Recording + Typing DISABLED"
+    );
+  } catch (e) {
+    console.error(e);
+    reply("❌ Failed");
+  }
 });
