@@ -1,19 +1,12 @@
 const { evt } = require("../gift");
 
-evt({
+evt.commands.push({
   pattern: "antidelete",
-  desc: "Enable/disable anti delete",
-  category: "owner"
-}, async (Gifted, m, { reply, isSuperUser, config, args }) => {
-
-  if (!isSuperUser) return reply("❌ Owner only");
-
-  if (!args[0]) return reply(`♻️ Anti Delete: *${config.ANTIDELETE}*\nOptions: inbox/chats/off`);
-
-  const value = args[0].toLowerCase();
-  if (!["inbox", "chats", "off"].includes(value)) return reply("❌ Invalid option");
-
-  config.ANTIDELETE = value;
-
-  reply(`✅ Anti Delete set to *${value}*`);
+  desc: "Toggle Anti-Delete Messages",
+  react: "🛑",
+  type: "user",
+  async function(from, bot, args, context) {
+    const mode = context.config.ANTIDELETE || "false";
+    await context.reply(`Anti-Delete Messages mode: ${mode}`);
+  },
 });
