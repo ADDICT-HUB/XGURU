@@ -1,19 +1,24 @@
-const { evt } = require("../gift");
+evt.commands.push({
+    pattern: "anticall",
+    desc: "Toggle Anti-Call Mode",
+    react: "📵",
+    type: "user",
+    async function(from, Gifted, args, conText) {
+        const reply = async (text) => {
+            await Gifted.sendMessage(from, { text }, { quoted: conText.m });
+        };
 
-evt({
-  pattern: "anticall",
-  desc: "Enable/disable auto reject calls",
-  category: "owner"
-}, async (Gifted, m, { reply, isSuperUser, config, args }) => {
+        let configPath = path.join(__dirname, "../config.js");
+        let config = require(configPath);
 
-  if (!isSuperUser) return reply("❌ Owner only");
+        const arg = args[0]?.toLowerCase();
+        if (!arg || !["on","off"].includes(arg)) return await reply("Usage: .anticall on/off");
 
-  if (!args[0]) return reply(`📵 Anti Call: *${config.ANTICALL}*\nUse: .anticall on/off`);
+        config.ANTICALL = arg === "on" ? "true" : "false";
 
-  const value = args[0].toLowerCase();
-  if (!["on","off"].includes(value)) return reply("❌ Use on or off");
+        fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
+        delete require.cache[require.resolve(configPath)];
 
-  config.ANTICALL = value === "on" ? "true" : "false";
-
-  reply(`✅ Anti Call set to *${value}*`);
+        await reply(`✅ Anti-Call is now ${config.ANTICALL === "true" ? "enabled" : "disabled"}`);
+    }
 });
