@@ -1,29 +1,29 @@
-const { evt } = require("../gift");
 const fs = require("fs");
-const configPath = require.resolve("../config.js");
+const path = require("path");
+const { gmd } = require("../gift");
 
-evt.commands.push({
-    pattern: "antidelete",
-    desc: "Toggle Anti-Delete Messages",
-    react: "🛑",
-    type: "user",
-    async function(from, bot, args, context) {
-        let config = require(configPath);
-        const arg = args[0]?.toLowerCase();
+const settingsPath = path.join(__dirname, "../settings.js");
 
-        if (arg === "on") {
-            config.ANTIDELETE = "true";
-            fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
-            await context.reply("✅ Anti-Delete Messages has been enabled");
-        } else if (arg === "off") {
-            config.ANTIDELETE = "false";
-            fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
-            await context.reply("❌ Anti-Delete Messages has been disabled");
-        } else {
-            const status = config.ANTIDELETE === "true" ? "enabled" : "disabled";
-            await context.reply(`Anti-Delete Messages is currently: ${status}`);
-        }
+gmd({
+  pattern: "antidelete",
+  react: "🗑️",
+  category: "owner",
+  description: "Toggle Anti Delete",
+}, async (from, Gifted, conText) => {
+  const { reply, react, isSuperUser, config } = conText;
+  if (!isSuperUser) return reply("❌ Owner Only Command!");
 
-        delete require.cache[configPath];
-    },
+  try {
+    const val = config.ANTI_DELETE === "true" ? "false" : "true";
+    config.ANTI_DELETE = val;
+
+    let txt = fs.readFileSync(settingsPath, "utf-8");
+    txt = txt.replace(/ANTI_DELETE\s*:\s*["'](true|false)["']/, `ANTI_DELETE: "${val}"`);
+    fs.writeFileSync(settingsPath, txt);
+
+    await react("✅");
+    reply(`🗑️ Anti Delete ${val === "true" ? "ENABLED" : "DISABLED"}`);
+  } catch (e) {
+    reply("❌ Failed to toggle Anti Delete");
+  }
 });
