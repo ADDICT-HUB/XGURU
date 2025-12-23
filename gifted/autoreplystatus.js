@@ -1,19 +1,26 @@
-const { evt } = require("../gift");
+evt.commands.push({
+    pattern: "autoreplystatus",
+    desc: "Toggle Auto-Reply Status",
+    react: "💬",
+    type: "user",
+    async function(from, Gifted, args, conText) {
+        const reply = async (text) => {
+            await Gifted.sendMessage(from, { text }, { quoted: conText.m });
+        };
 
-evt({
-  pattern: "autoreplystatus",
-  desc: "Enable/disable auto reply status",
-  category: "owner"
-}, async (Gifted, m, { reply, isSuperUser, config, args }) => {
+        let configPath = path.join(__dirname, "../config.js");
+        let config = require(configPath);
 
-  if (!isSuperUser) return reply("❌ Owner only");
+        const arg = args[0]?.toLowerCase();
+        if (!arg || !["on","off"].includes(arg)) {
+            return await reply("Usage: .autoreplystatus on/off");
+        }
 
-  if (!args[0]) return reply(`💬 Auto Reply Status: *${config.AUTO_REPLY_STATUS}*\nUse: .autoreplystatus on/off`);
+        config.AUTO_REPLY_STATUS = arg === "on" ? "true" : "false";
 
-  const value = args[0].toLowerCase();
-  if (!["on","off"].includes(value)) return reply("❌ Use on or off");
+        fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
+        delete require.cache[require.resolve(configPath)];
 
-  config.AUTO_REPLY_STATUS = value === "on" ? "true" : "false";
-
-  reply(`✅ Auto Reply Status set to *${value}*`);
+        await reply(`✅ Auto-Reply Status is now ${config.AUTO_REPLY_STATUS === "true" ? "enabled" : "disabled"}`);
+    }
 });
