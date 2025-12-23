@@ -1,19 +1,12 @@
 const { evt } = require("../gift");
 
-evt({
+evt.commands.push({
   pattern: "autobio",
-  desc: "Enable or disable auto bio",
-  category: "owner"
-}, async (Gifted, m, { reply, isSuperUser, config, args }) => {
-
-  if (!isSuperUser) return reply("❌ Owner only command");
-
-  if (!args[0]) return reply(`📝 Auto Bio: *${config.AUTO_BIO}*\nUse: .autobio on/off`);
-
-  const value = args[0].toLowerCase();
-  if (!["on", "off"].includes(value)) return reply("❌ Use on or off");
-
-  config.AUTO_BIO = value === "on" ? "true" : "false";
-
-  reply(`✅ Auto Bio set to *${value}*`);
+  desc: "Toggle Auto-Bio",
+  react: "📝",
+  type: "user",
+  async function(from, bot, args, context) {
+    const status = context.config.AUTO_BIO === "true" ? "enabled" : "disabled";
+    await context.reply(`Auto-Bio is currently ${status}`);
+  },
 });
