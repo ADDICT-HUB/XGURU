@@ -1,21 +1,20 @@
-const { 
-    default: giftedConnect, 
-    isJidGroup, 
+"use strict";
+
+/* ================= IMPORTS ================= */
+const {
+    default: giftedConnect,
     jidNormalizedUser,
     isJidBroadcast,
-    downloadMediaMessage, 
     downloadContentFromMessage,
-    downloadAndSaveMediaMessage, 
-    DisconnectReason, 
+    DisconnectReason,
     getContentType,
-    fetchLatestWaWebVersion, 
-    useMultiFileAuthState, 
-    makeCacheableSignalKeyStore,
-    jidDecode 
+    fetchLatestWaWebVersion,
+    useMultiFileAuthState,
+    makeCacheableSignalKeyStore
 } = require("gifted-baileys");
 
-const { 
-    evt, 
+const {
+    evt,
     logger,
     emojis,
     gmdStore,
@@ -28,895 +27,224 @@ const {
     GiftedAntiLink,
     GiftedAutoBio,
     GiftedChatBot,
+    GiftedPresence,
+    GiftedAntiDelete,
+    GiftedAnticall,
     loadSession,
     getMediaBuffer,
     getSudoNumbers,
     getFileContentType,
     bufferToStream,
-    uploadToPixhost,
-    uploadToImgBB,
-    setCommitHash, 
-    getCommitHash,
-    gmdBuffer, gmdJson, 
-    formatAudio, formatVideo,
-    uploadToGithubCdn,
-    uploadToGiftedCdn,
-    uploadToPasteboard,
-    uploadToCatbox,
-    GiftedAnticall,
-    createContext, 
-    createContext2,
-    verifyJidState,
-    GiftedPresence,
-    GiftedAntiDelete
+    createContext,
+    createContext2
 } = require("./gift");
 
-const { 
-    Sticker, 
-    createSticker, 
-    StickerTypes 
-} = require("wa-sticker-formatter");
 const pino = require("pino");
-const config = require("./config");
-const axios = require("axios");
-const googleTTS = require("google-tts-api");
 const fs = require("fs-extra");
 const path = require("path");
-const { Boom } = require("@hapi/boom");
 const express = require("express");
-const { promisify } = require('util');
-const stream = require('stream');
-const pipeline = promisify(stream.pipeline);
+const { Boom } = require("@hapi/boom");
+const config = require("./config");
+
+/* ================= SETTINGS ================= */
 const {
-    MODE: botMode, 
-    BOT_PIC: botPic, 
-    FOOTER: botFooter, 
-    CAPTION: botCaption, 
-    VERSION: botVersion, 
-    OWNER_NUMBER: ownerNumber, 
-    OWNER_NAME: ownerName,  
-    BOT_NAME: botName, 
-    PREFIX: botPrefix,
-    PRESENCE: botPresence,
-    CHATBOT: chatBot,
-    CHATBOT_MODE: chatBotMode,
-    STARTING_MESSAGE: startMess,
-    ANTIDELETE: antiDelete,
-    ANTILINK: antiLink,
-    ANTICALL: antiCall,
-    TIME_ZONE: timeZone,
-    BOT_REPO: giftedRepo,
-    GC_JID: groupJid,
-    NEWSLETTER_JID: newsletterJid,
-    NEWSLETTER_URL: newsletterUrl,
-    AUTO_REACT: autoReact,
-    AUTO_READ_STATUS: autoReadStatus,
-    AUTO_LIKE_STATUS: autoLikeStatus,
-    STATUS_LIKE_EMOJIS: statusLikeEmojis,
-    AUTO_REPLY_STATUS: autoReplyStatus,
-    STATUS_REPLY_TEXT: statusReplyText,
-    AUTO_READ_MESSAGES: autoRead,
-    AUTO_BLOCK: autoBlock,
-    AUTO_BIO: autoBio } = config;
-const PORT = process.env.PORT || 4420;
+    MODE,
+    BOT_NAME,
+    PREFIX,
+    OWNER_NUMBER,
+    STARTING_MESSAGE,
+    AUTO_REACT,
+    AUTO_BIO,
+    CHATBOT,
+    CHATBOT_MODE,
+    ANTILINK,
+    ANTICALL,
+    AUTO_READ_MESSAGES,
+    TIME_ZONE,
+    NEWSLETTER_JID,
+    NEWSLETTER_URL
+} = config;
+
+/* ================= SERVER ================= */
 const app = express();
-let Gifted;
+const PORT = process.env.PORT || 10000;
+app.get("/", (_, res) => res.send("Xguru Bot Running"));
+app.listen(PORT, () => console.log("Server Running:", PORT));
 
 logger.level = "silent";
 
-app.use(express.static("gift"));
-app.get("/", (req, res) => res.sendFile(__dirname + "/gift/gifted.html"));
-app.listen(PORT, () => console.log(`Server Running on Port: ${PORT}`));
-
+/* ================= GLOBALS ================= */
 const sessionDir = path.join(__dirname, "gift", "session");
+let Gifted;
+let store;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 30;
+const RECONNECT_DELAY = 5000;
 
 loadSession();
 
-let store; 
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 50;
-const RECONNECT_DELAY = 5000;
-
+/* ================= START BOT ================= */
 async function startGifted() {
     try {
-        const { version, isLatest } = await fetchLatestWaWebVersion();
+        const { version } = await fetchLatestWaWebVersion();
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-        
-        if (store) {
-            store.destroy();
-        }
+
         store = new gmdStore();
-        
-        const giftedSock = {
+
+        Gifted = giftedConnect({
             version,
             logger: pino({ level: "silent" }),
-            browser: ['GIFTED', "safari", "1.0.0"],
+            browser: ["Xguru", "Chrome", "1.0.0"],
             auth: {
                 creds: state.creds,
                 keys: makeCacheableSignalKeyStore(state.keys, logger)
             },
-            getMessage: async (key) => {
-                if (store) {
-                    const msg = store.loadMessage(key.remoteJid, key.id);
-                    return msg?.message || undefined;
-                }
-                return { conversation: 'Error occurred' };
-            },
-            connectTimeoutMs: 60000,
-            defaultQueryTimeoutMs: 60000,
-            keepAliveIntervalMs: 10000,
-            markOnlineOnConnect: true,
-            syncFullHistory: false,
-            generateHighQualityLinkPreview: false,
-            patchMessageBeforeSending: (message) => {
-                const requiresPatch = !!(
-                    message.buttonsMessage ||
-                    message.templateMessage ||
-                    message.listMessage
-                );
-                if (requiresPatch) {
-                    message = {
-                        viewOnceMessage: {
-                            message: {
-                                messageContextInfo: {
-                                    deviceListMetadataVersion: 2,
-                                    deviceListMetadata: {},
-                                },
-                                ...message,
-                            },
-                        },
-                    };
-                }
-                return message;
-            }
-        };
+            markOnlineOnConnect: true
+        });
 
-        Gifted = giftedConnect(giftedSock);
-        
         store.bind(Gifted.ev);
+        Gifted.ev.on("creds.update", saveCreds);
 
-        Gifted.ev.process(async (events) => {
-            if (events['creds.update']) {
-                await saveCreds();
-            }
-        });
+        const botJid = jidNormalizedUser(Gifted.user.id);
+        const ownerJid = OWNER_NUMBER.replace(/\D/g, "") + "@s.whatsapp.net";
 
-        if (autoReact === "true") {
-            Gifted.ev.on('messages.upsert', async (mek) => {
-                ms = mek.messages[0];
-                try {
-                    if (ms.key.fromMe) return;
-                    if (!ms.key.fromMe && ms.message) {
-                        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                        await GiftedAutoReact(randomEmoji, ms, Gifted);
-                    }
-                } catch (err) {
-                    console.error('Error during auto reaction:', err);
-                }
-            });
-        }
+        /* ================= MESSAGE HANDLER ================= */
+        Gifted.ev.on("messages.upsert", async ({ messages }) => {
+            const m = messages[0];
+            if (!m?.message) return;
 
-        const groupCooldowns = new Map();
-
-        function isGroupSpamming(jid) {
-            const now = Date.now();
-            const lastTime = groupCooldowns.get(jid) || 0;
-            if (now - lastTime < 1500) return true;
-            groupCooldowns.set(jid, now);
-            return false;
-        }
-        
-        let giftech = { chats: {} };
-const botJid = `${Gifted.user?.id.split(':')[0]}@s.whatsapp.net`;
-const botOwnerJid = `${Gifted.user?.id.split(':')[0]}@s.whatsapp.net`;
-
-Gifted.ev.on("messages.upsert", async ({ messages }) => {
-    try {
-        const ms = messages[0];
-        // console.log(ms); ///////////////////////////////////
-        if (!ms?.message) return;
-
-        const { key } = ms;
-        if (!key?.remoteJid) return;
-        if (key.fromMe) return;
-        if (key.remoteJid === 'status@broadcast') return;
-
-        const sender = key.senderPn || key.participantPn || key.participant || key.remoteJid;
-        const senderPushName = key.pushName || ms.pushName;
-
-        if (sender === botJid || sender === botOwnerJid || key.fromMe) return;
-
-        if (!giftech.chats[key.remoteJid]) giftech.chats[key.remoteJid] = [];
-        giftech.chats[key.remoteJid].push({
-            ...ms,
-            originalSender: sender, 
-            originalPushName: senderPushName,
-            timestamp: Date.now()
-        });
-
-        if (giftech.chats[key.remoteJid].length > 50) {
-            giftech.chats[key.remoteJid] = giftech.chats[key.remoteJid].slice(-50);
-        }
-
-        if (ms.message?.protocolMessage?.type === 0) {
-            const deletedId = ms.message.protocolMessage.key.id;
-            const deletedMsg = giftech.chats[key.remoteJid].find(m => m.key.id === deletedId);
-            if (!deletedMsg?.message) return;
-
-            const deleter = key.senderPn || key.participantAlt || key.participantPn || key.remoteJidAlt || key.participant || key.remoteJid;
-            const deleterPushName = key.pushName || ms.pushName;
-            
-            if (deleter === botJid || deleter === botOwnerJid) return;
-
-            await GiftedAntiDelete(
-                Gifted, 
-                deletedMsg, 
-                key, 
-                deleter, 
-                deletedMsg.originalSender, 
-                botOwnerJid,
-                deleterPushName,
-                deletedMsg.originalPushName
+            const from = m.key.remoteJid;
+            const sender = jidNormalizedUser(
+                m.key.fromMe ? Gifted.user.id : (m.key.participant || from)
             );
 
-            giftech.chats[key.remoteJid] = giftech.chats[key.remoteJid].filter(m => m.key.id !== deletedId);
-        }
-    } catch (error) {
-        logger.error('Anti-delete system error:', error);
-    }
-});
-
-        if (autoBio === 'true') {
-            setTimeout(() => GiftedAutoBio(Gifted), 1000);
-            setInterval(() => GiftedAutoBio(Gifted), 1000 * 60); // Update every minute 
-        }
-
-        Gifted.ev.on("call", async (json) => {
-            await GiftedAnticall(json, Gifted);
-        });
-
-    Gifted.ev.on('messages.upsert', async (mek) => {
-        try {
-       const msg = mek.messages[0];
-      // console.log(msg) //////////////////////////
-       if (!msg || !msg?.message) return;
-       if (msg?.key?.remoteJid === newsletterJid && msg?.key?.server_id) {
-           try {
-               const emojiList = ["❤️", "💛", "👍", "❤️", "💜", "😮", "🤍" ,"💙"]; // Your emoji list
-               const emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
-
-               const messageId = msg?.key?.server_id.toString();
-               await Gifted.newsletterReactMessage(newsletterJid, messageId, emoji);
-           } catch (err) {
-               console.error("❌ Failed to react to channel message:", err);
-           }
-       }
-   } catch (err) {
-       console.log(err);
-   }
-}); 
-
-        Gifted.ev.on("messages.upsert", async ({ messages }) => {
-            if (messages && messages.length > 0) {
-                await GiftedPresence(Gifted, messages[0].key.remoteJid);
-            }
-        });
-
-        Gifted.ev.on("connection.update", ({ connection }) => {
-            if (connection === "open") {
-                logger.info("Connection established - updating presence");
-                GiftedPresence(Gifted, "status@broadcast");
-            }
-        });
-
-        if (chatBot === 'true' || chatBot === 'audio') {
-            GiftedChatBot(Gifted, chatBot, chatBotMode, createContext, createContext2, googleTTS);
-        }
-        
-        Gifted.ev.on('messages.upsert', async ({ messages }) => {
-            const message = messages[0];
-            if (!message?.message || message.key.fromMe) return;
-            if (antiLink !== 'false') {
-                await GiftedAntiLink(Gifted, message, antiLink);
-            }
-        });
-
-        Gifted.ev.on('messages.upsert', async (mek) => {
-      try {
-        mek = mek.messages[0];
-        if (!mek || !mek.message) return;
-
-        const fromJid = mek.key.participantPn || mek.key.participant || mek.key.remoteJidAlt || mek.key.remoteJid;
-        mek.message = (getContentType(mek.message) === 'ephemeralMessage') 
-            ? mek.message.ephemeralMessage.message 
-            : mek.message;
-
-        if (mek.key && mek.key?.remoteJid === "status@broadcast" && isJidBroadcast(mek.key.remoteJid)) {
-            const giftedtech = jidNormalizedUser(Gifted.user.id);
-
-            if (autoReadStatus === "true") {
-                await Gifted.readMessages([mek.key, giftedtech]);
-            }
-
-            if (autoLikeStatus === "true" && mek.key.participant) {
-                const emojis = statusLikeEmojis?.split(',') || "💛,❤️,💜,🤍,💙"; 
-                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)]; 
-                await Gifted.sendMessage(
-                    mek.key.remoteJid,
-                    { react: { key: mek.key, text: randomEmoji } },
-                    { statusJidList: [mek.key.participant, giftedtech] }
-                );
-            }
-
-            if (autoReplyStatus === "true") {
-                if (mek.key.fromMe) return;
-                const customMessage = statusReplyText || '✅ Status Viewed By Gifted-Md';
-                await Gifted.sendMessage(
-                    fromJid,
-                    { text: customMessage },
-                    { quoted: mek }
-                );
-            }
-        }
-    } catch (error) {
-        console.error("Error Processing Actions:", error);
-    }
-});
-
-         try {
-            const pluginsPath = path.join(__dirname, "gifted");
-            fs.readdirSync(pluginsPath).forEach((fileName) => {
-                if (path.extname(fileName).toLowerCase() === ".js") {
-                    try {
-                        require(path.join(pluginsPath, fileName));
-                    } catch (e) {
-                        console.error(`❌ Failed to load ${fileName}: ${e.message}`);
-                    }
-                }
-            });
-        } catch (error) {
-            console.error("❌ Error reading Taskflow folder:", error.message);
-        }
-
-// ───────── PLUGIN FILES LOADED ─────────
-Gifted.ev.on("messages.upsert", async ({ messages }) => {
-    const ms = messages?.[0];
-    if (!ms?.message || !ms?.key) return;
-
-    // ───────── STANDARDIZE JID ─────────
-    const standardizeJid = (jid = '') => {
-        if (typeof jid !== 'string') jid = String(jid || '');
-        // Remove device/agent info
-        jid = jid.split(':')[0].split('/')[0];
-        // WhatsApp lid format
-        if (jid.endsWith('@lid')) return jid.toLowerCase();
-        // Ensure @s.whatsapp.net for users
-        if (!jid.includes('@')) jid += '@s.whatsapp.net';
-        return jid.toLowerCase();
-    };
-
-    // ───────── BOT & SENDER ─────────
-// ───────── BOT & SENDER ─────────
-const botId = standardizeJid(Gifted.user?.id);
-
-// Determine the actual sender
-const sender = standardizeJid(
-    ms.key?.participant ||      // normal group message participant
-    ms.key?.participantPn ||    // fallback participantPn
-    ms.key?.senderPn ||         // fallback senderPn
-    ms.key?.remoteJid || ''     // default to remoteJid or empty string
-);
-
-    // ───────── ENTRY POINT CHECK ─────────
-    const hasEntryPointContext =
-        ms.message?.extendedTextMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
-        ms.message?.imageMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
-        ms.message?.videoMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
-        ms.message?.documentMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
-        ms.message?.audioMessage?.contextInfo?.entryPointConversionApp === "whatsapp";
-
-    // If message is sent by bot itself via @lid
-    const isMessageYourself = hasEntryPointContext && ms.key.remoteJid.endsWith('@lid') && ms.key.fromMe;
-
-    const from = isMessageYourself ? botId : standardizeJid(ms.key.remoteJid);
-
-    // ───────── OPTIONAL DEBUG ─────────
-    // console.log({ from, sender, isMessageYourself });
-
-    /* Continue your command or plugin logic below using:
-       - from -> chat/jid
-       - sender -> who sent
-       - botId -> your bot
-    */
-});
-            // const botId = standardizeJid(Gifted.user?.id);
             const isGroup = from.endsWith("@g.us");
-            let groupInfo = null;
-            let groupName = '';
+            const isOwner = sender === ownerJid;
+            const type = getContentType(m.message);
+
+            const body =
+                m.message.conversation ||
+                m.message?.extendedTextMessage?.text ||
+                m.message?.imageMessage?.caption ||
+                m.message?.videoMessage?.caption ||
+                "";
+
+            /* -------- AUTO READ -------- */
+            if (AUTO_READ_MESSAGES === "true") {
+                await Gifted.readMessages([m.key]);
+            }
+
+            /* -------- AUTO REACT -------- */
+            if (AUTO_REACT === "true" && !m.key.fromMe) {
+                const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                await GiftedAutoReact(emoji, m, Gifted);
+            }
+
+            /* -------- ANTILINK -------- */
+            if (ANTILINK !== "false" && !m.key.fromMe) {
+                await GiftedAntiLink(Gifted, m, ANTILINK);
+            }
+
+            /* -------- COMMAND HANDLER -------- */
+            if (!body.startsWith(PREFIX)) return;
+
+            const cmd = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
+            const args = body.trim().split(/\s+/).slice(1);
+
+            const command = evt.commands.find(
+                c => c.pattern === cmd || c.aliases?.includes(cmd)
+            );
+
+            if (!command) return;
+            if (MODE === "private" && !isOwner) return;
+
+            const reply = txt =>
+                Gifted.sendMessage(from, { text: txt }, { quoted: m });
+
             try {
-            groupInfo = isGroup ? await Gifted.groupMetadata(from).catch(() => null) : null;
-             //  console.log(groupInfo) //////////////////////////////////////////////////////
-groupName = groupInfo?.subject || '';
-} catch (err) {
-    console.error("Group metadata error:", err);
-}
-
-const sendr = ms.key.fromMe 
-                ? (Gifted.user.id.split(':')[0] + '@s.whatsapp.net' || Gifted.user.id) 
-                : (ms.key.participantPn || ms.key.senderPn || ms.key.participant || ms.key.participantAlt || ms.key.remoteJidAlt || ms.key.remoteJid);
-let participants = [];
-let groupAdmins = [];
-let groupSuperAdmins = [];
-let sender = sendr;
-let isBotAdmin = false;
-let isAdmin = false;
-let isSuperAdmin = false;
-
-if (groupInfo && groupInfo.participants) {
-    participants = groupInfo.participants.map(p => p.pn || p.poneNumber || p.id);
-    groupAdmins = groupInfo.participants.filter(p => p.admin === 'admin').map(p => p.pn || p.poneNumber || p.id);
-    groupSuperAdmins = groupInfo.participants.filter(p => p.admin === 'superadmin').map(p => p.pn || p.poneNumber || p.id);
-    const senderLid = standardizeJid(sendr);
-    const founds = groupInfo.participants.find(p => p.id === senderLid || p.pn === senderLid || p.phoneNumber === senderLid);
-    sender = founds?.pn || founds?.phoneNumber || founds?.id || sendr;
-    isBotAdmin = groupAdmins.includes(standardizeJid(botId)) || groupSuperAdmins.includes(standardizeJid(botId));
-    isAdmin = groupAdmins.includes(sender);
-    isSuperAdmin = groupSuperAdmins.includes(sender);
-}
-
-            const repliedMessage = ms.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
-            const type = getContentType(ms.message);
-            const pushName = ms.pushName || 'Gifted-Md User';
-            const quoted = 
-                type == 'extendedTextMessage' && 
-                ms.message.extendedTextMessage.contextInfo != null 
-                ? ms.message.extendedTextMessage.contextInfo.quotedMessage || [] 
-                : [];
-            const body = 
-                (type === 'conversation') ? ms.message.conversation : 
-                (type === 'extendedTextMessage') ? ms.message.extendedTextMessage.text : 
-                (type == 'imageMessage') && ms.message.imageMessage.caption ? ms.message.imageMessage.caption : 
-                (type == 'videoMessage') && ms.message.videoMessage.caption ? ms.message.videoMessage.caption : '';
-            const isCommand = body.startsWith(botPrefix);
-            const command = isCommand ? body.slice(botPrefix.length).trim().split(' ').shift().toLowerCase() : '';
-            
-            const mentionedJid = (ms.message?.extendedTextMessage?.contextInfo?.mentionedJid || []).map(standardizeJid);
-            const tagged = ms.mtype === "extendedTextMessage" && ms.message.extendedTextMessage.contextInfo != null
-                ? ms.message.extendedTextMessage.contextInfo.mentionedJid
-                : [];
-            const quotedMsg = ms.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-            const quotedUser = ms.message?.extendedTextMessage?.contextInfo?.participant || 
-                ms.message?.extendedTextMessage?.contextInfo?.remoteJid;
-            const repliedMessageAuthor = standardizeJid(ms.message?.extendedTextMessage?.contextInfo?.participant);
-            let messageAuthor = isGroup 
-                ? standardizeJid(ms.key.participant || ms.participant || from)
-                : from;
-            if (ms.key.fromMe) messageAuthor = botId;
-            const user = mentionedJid.length > 0 
-                ? mentionedJid[0] 
-                : repliedMessage 
-                    ? repliedMessageAuthor 
-                    : '';
-const devNumbers = ('254715206562,254114018035,254728782591,254799916673,254762016957,254113174209')
-    .split(',')
-    .map(num => num.trim().replace(/\D/g, '')) 
-    .filter(num => num.length > 5); 
-
-const sudoNumbersFromFile = getSudoNumbers() || [];
-const sudoNumbers = (config.SUDO_NUMBERS ? config.SUDO_NUMBERS.split(',') : [])
-    .map(num => num.trim().replace(/\D/g, ''))
-    .filter(num => num.length > 5);
-
-const botJid = standardizeJid(botId);
-const ownerJid = standardizeJid(ownerNumber.replace(/\D/g, ''));
-const superUser = [
-    ownerJid,
-    botJid,
-    ...(sudoNumbers || []).map(num => `${num}@s.whatsapp.net`),
-    ...(devNumbers || []).map(num => `${num}@s.whatsapp.net`),
-    ...(sudoNumbersFromFile || []).map(num => `${num}@s.whatsapp.net`)
-].map(jid => standardizeJid(jid)).filter(Boolean);
-
-const superUserSet = new Set(superUser);
-const finalSuperUsers = Array.from(superUserSet);
-
-const isSuperUser = finalSuperUsers.includes(sender);
-                            
-
-
-if (autoBlock && sender && !isSuperUser && !isGroup) {
-    const countryCodes = autoBlock.split(',').map(code => code.trim());
-    if (countryCodes.some(code => sender.startsWith(code))) {
-        try {
-            await Gifted.updateBlockStatus(sender, 'block');
-        } catch (blockErr) {
-            console.error("Block error:", blockErr);
-            if (isSuperUser) {
-                await Gifted.sendMessage(ownerJid, { 
-                    text: `⚠️ Failed to block restricted user: ${sender}\nError: ${blockErr.message}`
+                await command.function(from, Gifted, {
+                    m,
+                    args,
+                    reply,
+                    sender,
+                    isGroup,
+                    isOwner,
+                    config,
+                    setSudo,
+                    delSudo,
+                    getSudoNumbers,
+                    GiftedTechApi,
+                    GiftedApiKey,
+                    getMediaBuffer,
+                    getFileContentType,
+                    bufferToStream
                 });
+            } catch (err) {
+                console.error("Command Error:", err);
+                reply(`🚨 Command failed:\n${err.message}`);
             }
-        }
-    }
-}
-            
-            if (autoRead === "true") await Gifted.readMessages([ms.key]);
-            if (autoRead === "commands" && isCommand) await Gifted.readMessages([ms.key]);
-            
-
-            const text = ms.message?.conversation || 
-                        ms.message?.extendedTextMessage?.text || 
-                        ms.message?.imageMessage?.caption || 
-                        '';
-            const args = typeof text === 'string' ? text.trim().split(/\s+/).slice(1) : [];
-            const isCommandMessage = typeof text === 'string' && text.startsWith(botPrefix);
-            const cmd = isCommandMessage ? text.slice(botPrefix.length).trim().split(/\s+/)[0]?.toLowerCase() : null;
-
-            if (isCommandMessage && cmd) {
-                const gmd = Array.isArray(evt.commands) 
-                    ? evt.commands.find((c) => (
-                        c?.pattern === cmd || 
-                        (Array.isArray(c?.aliases) && c.aliases.includes(cmd))
-                    )) 
-                    : null;
-
-                if (gmd) {
-                    if (config.MODE?.toLowerCase() === "private" && !isSuperUser) {
-                        return;
-                    }
-
-                    try {
-                        const reply = (teks) => {
-  Gifted.sendMessage(from, { text: teks }, { quoted: ms });
-};
-                        /*const reply = async (text, options = {}) => {
-                            if (typeof text !== 'string') return;
-                            try {
-                                await Gifted.sendMessage(from, { 
-                                    text,
-                                    ...createContext(sender, {
-                                        title: options.title || groupName || botName || "GIFTED-MD",
-                                        body: options.body || ""
-                                    })
-                                }, { quoted: ms });
-                            } catch (err) {
-                                console.error("Reply error:", err);
-                            }
-                        };*/
-
-                        const react = async (emoji) => {
-                            if (typeof emoji !== 'string') return;
-                            try {
-                                await Gifted.sendMessage(from, { 
-                                    react: { 
-                                        key: ms.key, 
-                                        text: emoji
-                                    }
-                                });
-                            } catch (err) {
-                                console.error("Reaction error:", err);
-                            }
-                        };
-
-                        const edit = async (text, message) => {
-                            if (typeof text !== 'string') return;
-                            
-                            try {
-                                await Gifted.sendMessage(from, {
-                                    text: text,
-                                    edit: message.key
-                                }, { 
-                                    quoted: ms 
-                                });
-                            } catch (err) {
-                                console.error("Edit error:", err);
-                            }
-                        };
-
-                        const del = async (message) => {
-                            if (!message?.key) return; 
-
-                            try {
-                                await Gifted.sendMessage(from, {
-                                    delete: message.key
-                                }, { 
-                                    quoted: ms 
-                                });
-                            } catch (err) {
-                                console.error("Delete error:", err);
-                            }
-                        };
-
-                        if (gmd.react) {
-                            try {
-                                await Gifted.sendMessage(from, {
-                                    react: { 
-                                        key: ms.key, 
-                                        text: gmd.react
-                                    }
-                                });
-                            } catch (err) {
-                                console.error("Reaction error:", err);
-                            }
-                        }
-
-                        Gifted.getJidFromLid = async (lid) => {
-    const groupMetadata = await Gifted.groupMetadata(from);
-    const match = groupMetadata.participants.find(p => p.lid === lid || p.id === lid);
-    return match?.pn || match?.phoneNumber || null;
-};
-
-Gifted.getLidFromJid = async (jid) => {
-    const groupMetadata = await Gifted.groupMetadata(from);
-    const match = groupMetadata.participants.find(p => p.jid === jid || p.pn === jid || p.poneNumber === jid || p.id === jid);
-    return match?.lid || null;
-};
-                           
-
-                        let fileType;
-                        (async () => {
-                            fileType = await import('file-type');
-                        })();
-
-                        Gifted.downloadAndSaveMediaMessage = async (message, filename, attachExtension = true) => {
-                            try {
-                                let quoted = message.msg ? message.msg : message;
-                                let mime = (message.msg || message).mimetype || '';
-                                let messageType = message.mtype ? 
-                                    message.mtype.replace(/Message/gi, '') : 
-                                    mime.split('/')[0];
-                                
-                                const stream = await downloadContentFromMessage(quoted, messageType);
-                                let buffer = Buffer.from([]);
-                                
-                                for await (const chunk of stream) {
-                                    buffer = Buffer.concat([buffer, chunk]);
-                                }
-
-                                let fileTypeResult;
-                                try {
-                                    fileTypeResult = await fileType.fileTypeFromBuffer(buffer);
-                                } catch (e) {
-                                    console.log("file-type detection failed, using mime type fallback");
-                                }
-
-                                const extension = fileTypeResult?.ext || 
-                                            mime.split('/')[1] || 
-                                            (messageType === 'image' ? 'jpg' : 
-                                            messageType === 'video' ? 'mp4' : 
-                                            messageType === 'audio' ? 'mp3' : 'bin');
-
-                                const trueFileName = attachExtension ? 
-                                    `${filename}.${extension}` : 
-                                    filename;
-                                
-                                await fs.writeFile(trueFileName, buffer);
-                                return trueFileName;
-                            } catch (error) {
-                                console.error("Error in downloadAndSaveMediaMessage:", error);
-                                throw error;
-                            }
-                        };
-                        
-                        const conText = {
-                            m: ms,
-                            mek: ms,
-                            edit,
-                            react,
-                            del,
-                            arg: args,
-                            quoted,
-                            isCmd: isCommand,
-                            command,
-                            isAdmin,
-                            isBotAdmin,
-                            sender,
-                            pushName,
-                            setSudo,
-                            delSudo,
-                            q: args.join(" "),
-                            reply,
-                            config,
-                            superUser,
-                            tagged,
-                            mentionedJid,
-                            isGroup,
-                            groupInfo,
-                            groupName,
-                            getSudoNumbers,
-                            authorMessage: messageAuthor,
-                            user: user || '',
-                            gmdBuffer, gmdJson, 
-                            formatAudio, formatVideo,
-                            groupMember: isGroup ? messageAuthor : '',
-                            from,
-                            tagged,
-                            groupAdmins,
-                            participants,
-                            repliedMessage,
-                            quotedMsg,
-                            quotedUser,
-                            isSuperUser,
-                            botMode,
-                            botPic,
-                            botFooter,
-                            botCaption,
-                            botVersion,
-                            ownerNumber,
-                            ownerName,
-                            botName,
-                            giftedRepo,
-                            isSuperAdmin,
-                            getMediaBuffer,
-                            getFileContentType,
-                            bufferToStream,
-                            uploadToPixhost,
-                            uploadToImgBB,
-                            setCommitHash, 
-                            getCommitHash,
-                            uploadToGithubCdn,
-                            uploadToGiftedCdn,
-                            uploadToPasteboard,
-                            uploadToCatbox,
-                            newsletterUrl,
-                            newsletterJid,
-                            GiftedTechApi,
-                            GiftedApiKey,
-                            botPrefix,
-                            timeZone };
-
-                        await gmd.function(from, Gifted, conText);
-
-                    } catch (error) {
-                        console.error(`Command error [${cmd}]:`, error);
-                        try {
-                            await Gifted.sendMessage(from, {
-                                text: `🚨 Command failed: ${error.message}`,
-                                ...createContext(messageAuthor, {
-                                    title: "Error",
-                                    body: "Command execution failed"
-                                })
-                            }, { quoted: ms });
-                        } catch (sendErr) {
-                            console.error("Error sending error message:", sendErr);
-                        }
-                    }
-                }
-            }
-            
         });
 
-        Gifted.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect } = update;
+        /* ================= AUTO BIO ================= */
+        if (AUTO_BIO === "true") {
+            setInterval(() => GiftedAutoBio(Gifted), 60 * 1000);
+        }
 
-    if (connection === "connecting") {
-        console.log("🕗 Connecting Bot...");
-        reconnectAttempts = 0;
-    }
+        /* ================= CHAT BOT ================= */
+        if (CHATBOT === "true" || CHATBOT === "audio") {
+            GiftedChatBot(
+                Gifted,
+                CHATBOT,
+                CHATBOT_MODE,
+                createContext,
+                createContext2
+            );
+        }
 
-    if (connection === "open") {
-        await Gifted.newsletterFollow(newsletterJid);
-        await Gifted.groupAcceptInvite(groupJid);
-        console.log("✅ Connection Instance is Online");
-        reconnectAttempts = 0;
+        /* ================= ANTICALL ================= */
+        if (ANTICALL === "true") {
+            Gifted.ev.on("call", async json => GiftedAnticall(json, Gifted));
+        }
 
-        setTimeout(async () => {
-            try {
-                const totalCommands = commands.filter((command) => command.pattern).length;
-                console.log('💜 Connected to Whatsapp, Active!');
+        /* ================= PRESENCE ================= */
+        Gifted.ev.on("messages.upsert", async ({ messages }) => {
+            if (messages[0]?.key?.remoteJid)
+                GiftedPresence(Gifted, messages[0].key.remoteJid);
+        });
 
-                if (startMess === 'true') {
-                    const md = botMode === 'public' ? "public" : "private";
-                    const connectionMsg = `
-*╔═══════════════╗*
-*║  ${botName} CONNECTED  ║*
-*╚═══════════════╝*
+        /* ================= CONNECTION ================= */
+        Gifted.ev.on("connection.update", async update => {
+            const { connection, lastDisconnect } = update;
 
-╭─❏ BOT INFORMATION ❏─╮
-│ 🔹 Prefix      : ${botPrefix}
-│ 🔹 Plugins     : ${totalCommands}
-│ 🔹 Mode        : ${md}
-│ 🔹 Owner       : ${ownerNumber}
-│ 🔹 Tutorials   : ${config.YT}
-│ 🔹 Updates     : ${newsletterUrl}
-╰────────────────────╯
+            if (connection === "connecting") {
+                console.log("🕗 Connecting Bot...");
+            }
 
-> ${botCaption}
-`;
+            if (connection === "open") {
+                console.log("✅ Bot Online");
+                reconnectAttempts = 0;
 
-                    await Gifted.sendMessage(
-                        Gifted.user.id,
-                        {
-                            text: connectionMsg,
-                            ...createContext(botName, {
-                                title: "BOT INTEGRATED",
-                                body: "Status: Ready for Use"
-                            })
-                        },
-                        {
-                            disappearingMessagesInChat: true,
-                            ephemeralExpiration: 300,
-                        }
-                    );
+                if (STARTING_MESSAGE === "true") {
+                    await Gifted.sendMessage(Gifted.user.id, {
+                        text: `✅ ${BOT_NAME} Connected\nPrefix: ${PREFIX}\nMode: ${MODE}`
+                    });
                 }
-            } catch (err) {
-                console.error("Post-connection setup error:", err);
             }
-        }, 5000);
-    }
 
-    if (connection === "close") {
-        let reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.statusCode;
-        console.log(`Connection closed due to: ${reason || "Unknown reason"}`);
+            if (connection === "close") {
+                const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
+                console.log("Disconnected:", reason);
 
-        switch (reason) {
-            case DisconnectReason.badSession:
-                console.log("Bad session file, automatically deleted...please scan again");
-                try { await fs.remove(__dirname + "/gift/session"); } catch (e) { console.error(e); }
-                process.exit(1);
-                break;
-            case DisconnectReason.connectionClosed:
-            case DisconnectReason.connectionLost:
-            case DisconnectReason.restartRequired:
-                console.log("Connection issue, reconnecting...");
-                setTimeout(() => reconnectWithRetry(), RECONNECT_DELAY);
-                break;
-            case DisconnectReason.connectionReplaced:
-            case DisconnectReason.loggedOut:
-                console.log("Session invalid or replaced, deleting session...");
-                try { await fs.remove(__dirname + "/gift/session"); } catch (e) { console.error(e); }
-                process.exit(1);
-                break;
-            case DisconnectReason.timedOut:
-                console.log("Connection timed out, reconnecting...");
-                setTimeout(() => reconnectWithRetry(), RECONNECT_DELAY * 2);
-                break;
-            default:
-                console.log("Unknown disconnect reason, reconnecting...");
-                setTimeout(() => reconnectWithRetry(), RECONNECT_DELAY);
-        }
-    }
-});
-
-        const cleanup = () => {
-            if (store) {
-                store.destroy();
+                if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) process.exit(1);
+                reconnectAttempts++;
+                setTimeout(startGifted, RECONNECT_DELAY);
             }
-        };
+        });
 
-        process.on('SIGINT', cleanup);
-        process.on('SIGTERM', cleanup);
-
-    } catch (error) {
-        console.error('Socket initialization error:', error);
-        setTimeout(() => reconnectWithRetry(), RECONNECT_DELAY);
+    } catch (err) {
+        console.error("Startup Error:", err);
+        setTimeout(startGifted, RECONNECT_DELAY);
     }
 }
 
-async function reconnectWithRetry() {
-    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-        console.error('Max reconnection attempts reached. Exiting...');
-        process.exit(1);
-    }
-
-    reconnectAttempts++;
-    const delay = Math.min(RECONNECT_DELAY * Math.pow(2, reconnectAttempts - 1), 300000);
-    
-    console.log(`Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms...`);
-    
-    setTimeout(async () => {
-        try {
-            await startGifted();
-        } catch (error) {
-            console.error('Reconnection failed:', error);
-            reconnectWithRetry();
-        }
-    }, delay);
-}
-
-setTimeout(() => {
-    startGifted().catch(err => {
-        console.error("Initialization error:", err);
-        reconnectWithRetry();
-    });
-}, 5000);
+startGifted();
