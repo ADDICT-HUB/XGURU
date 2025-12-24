@@ -55,7 +55,7 @@ module.exports = {
     YT: process.env.YT || "youtube.com/@XGURU",
     NEWSLETTER_JID: process.env.NEWSLETTER_JID || "120363421164015033@newsletter",
     GC_JID: process.env.GC_JID || "GiD4BYjebncLvhr0J2SHAg",
-    NEWSLETTER_URL: process.env.NEWSLETTER_URL || "https://whatsapp.com/channel/0029VbC5WlPL7UVQ6AbK7x2n",
+    NEWSLETTER_URL: process.env.NEWSLETTER_URL || "https://whatsapp.com/channel/0029VbBNUAFFXUuUmJdrkj1f",
     BOT_REPO: process.env.BOT_REPO || "https://github.com/ADDICT-HUB/XGURU-",
 
     // ===== STICKER & MEDIA PACK =====
