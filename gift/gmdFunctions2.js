@@ -325,32 +325,20 @@ const presenceTimers = new Map();
 const GiftedPresence = async (Gifted, jid) => {
     try {
         const isGroup = jid.endsWith('@g.us');
-        const duration = 15 * 60 * 1000;
+        const duration = 15 * 60 * 1000; // minutes duration
 
         if (presenceTimers.has(jid)) {
             clearTimeout(presenceTimers.get(jid));
             presenceTimers.delete(jid);
         }
 
-        /* 🔥 AUTO RECORD + TYPING MODE */
-        if (config.AUTO_RECORD === "true") {
-            await Gifted.sendPresenceUpdate("composing", jid); // typing
-            await Gifted.sendPresenceUpdate("recording", jid); // recording
-
-            presenceTimers.set(jid, setTimeout(() => {
-                presenceTimers.delete(jid);
-            }, duration));
-
-            logger.debug(`AutoRecord presence active (typing + recording) for ${jid}`);
-            return;
-        }
-
-        /* 🔹 NORMAL PRESENCE MODE */
         const presenceType = isGroup ? groupPresence : dmPresence;
         if (!presenceType) return;
 
+        const presence = presenceType.toLowerCase();
         let whatsappPresence;
-        switch (presenceType.toLowerCase()) {
+
+        switch(presence) {
             case 'online':
                 whatsappPresence = "available";
                 break;
@@ -364,20 +352,23 @@ const GiftedPresence = async (Gifted, jid) => {
                 whatsappPresence = "unavailable";
                 break;
             default:
-                logger.warn(`Invalid presence: ${presenceType}`);
+                logger.warn(`Invalid ${isGroup ? 'group' : ''}presence: ${presenceType}`);
                 return;
         }
 
         await Gifted.sendPresenceUpdate(whatsappPresence, jid);
-
+        logger.debug(`${isGroup ? 'Group' : 'Chat'} presence activated: ${presence} for ${jid}`);
         presenceTimers.set(jid, setTimeout(() => {
             presenceTimers.delete(jid);
+            logger.debug(`${isGroup ? 'Group' : 'Chat'} presence duration ended for ${jid}`);
         }, duration));
 
     } catch (e) {
-        logger.error("Presence update failed:", e.message);
+        logger.error('Presence update failed:', e.message);
     }
 };
+
+
 const GiftedAnticall = async (json, Gifted) => {
    for (const id of json) {
       if (id.status === 'offer') {
