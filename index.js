@@ -378,44 +378,54 @@ Gifted.ev.on("messages.upsert", async ({ messages }) => {
             console.error("❌ Error reading Taskflow folder:", error.message);
         }
 
-        // console.log("✅ Plugin Files Loaded"); /////////////////////////////////////////////////////////////////////
+// ───────── PLUGIN FILES LOADED ─────────
+Gifted.ev.on("messages.upsert", async ({ messages }) => {
+    const ms = messages?.[0];
+    if (!ms?.message || !ms?.key) return;
 
-        Gifted.ev.on("messages.upsert", async ({ messages }) => {
-            const ms = messages[0];
-            // console.log(ms) /////////////////////////////////////////////////////////
-            if (!ms?.message || !ms?.key) return;
+    // ───────── STANDARDIZE JID ─────────
+    const standardizeJid = (jid = '') => {
+        if (typeof jid !== 'string') jid = String(jid || '');
+        // Remove device/agent info
+        jid = jid.split(':')[0].split('/')[0];
+        // WhatsApp lid format
+        if (jid.endsWith('@lid')) return jid.toLowerCase();
+        // Ensure @s.whatsapp.net for users
+        if (!jid.includes('@')) jid += '@s.whatsapp.net';
+        return jid.toLowerCase();
+    };
 
-            function standardizeJid(jid) {
-                if (!jid) return '';
-                try {
-                    jid = typeof jid === 'string' ? jid : 
-                        (jid.decodeJid ? jid.decodeJid() : String(jid));
-                    jid = jid.split(':')[0].split('/')[0];
-                    if (!jid.includes('@')) {
-                        jid += '@s.whatsapp.net';
-                    } else if (jid.endsWith('@lid')) {
-                        return jid.toLowerCase();
-                    }
-                    return jid.toLowerCase();
-                } catch (e) {
-                    console.error("JID standardization error:", e);
-                    return '';
-                }
-            }
+    // ───────── BOT & SENDER ─────────
+    const botId = standardizeJid(Gifted.user?.id);
+    const sender = standardizeJid(
+        ms.key.participant || 
+        ms.key.participantPn || 
+        ms.key.senderPn || 
+        ms.key.remoteJid
+    );
 
-            const botId = standardizeJid(Gifted.user?.id);
+    // ───────── ENTRY POINT CHECK ─────────
+    const hasEntryPointContext =
+        ms.message?.extendedTextMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
+        ms.message?.imageMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
+        ms.message?.videoMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
+        ms.message?.documentMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
+        ms.message?.audioMessage?.contextInfo?.entryPointConversionApp === "whatsapp";
 
-const hasEntryPointContext = 
-  ms.message?.extendedTextMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
-  ms.message?.imageMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
-  ms.message?.videoMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
-  ms.message?.documentMessage?.contextInfo?.entryPointConversionApp === "whatsapp" ||
-  ms.message?.audioMessage?.contextInfo?.entryPointConversionApp === "whatsapp";
+    // If message is sent by bot itself via @lid
+    const isMessageYourself = hasEntryPointContext && ms.key.remoteJid.endsWith('@lid') && ms.key.fromMe;
 
-const isMessageYourself = hasEntryPointContext && ms.key.remoteJid.endsWith('@lid') && ms.key.fromMe;
+    const from = isMessageYourself ? botId : standardizeJid(ms.key.remoteJid);
 
-const from = isMessageYourself ? botId : standardizeJid(ms.key.remoteJid);
+    // ───────── OPTIONAL DEBUG ─────────
+    // console.log({ from, sender, isMessageYourself });
 
+    /* Continue your command or plugin logic below using:
+       - from -> chat/jid
+       - sender -> who sent
+       - botId -> your bot
+    */
+});
             // const botId = standardizeJid(Gifted.user?.id);
             const isGroup = from.endsWith("@g.us");
             let groupInfo = null;
