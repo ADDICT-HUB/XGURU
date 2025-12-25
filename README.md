@@ -35,7 +35,7 @@
 
 <!-- HEROKU -->
 ###  HEROKU (ONE CLICK)
-<a href="https://heroku.com/deploy?template=https://github.com/ADDICT-HUB/XGURU-">
+<a href="(https://dashboard.heroku.com/new?template=https://github.com/ADDICT-HUB/XGURU)">
 <img src="https://www.herokucdn.com/deploy/button.svg" height="48">
 </a>
 
