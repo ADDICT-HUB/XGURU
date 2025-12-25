@@ -320,7 +320,6 @@ Gifted.ev.on("messages.upsert", async ({ messages }) => {
 
         Gifted.ev.on("messages.upsert", async ({ messages }) => {
             if (messages && messages.length > 0) {
-                // Background update for speed
                 GiftedPresence(Gifted, messages[0].key.remoteJid);
             }
         });
@@ -570,20 +569,19 @@ if (autoBlock && sender && !isSuperUser && !isGroup) {
                         return;
                     }
 
-                    // --- SPEED OPTIMIZATION: Non-blocking presence updates ---
                     if (autoTyping === "true") Gifted.sendPresenceUpdate('composing', from);
                     if (autoRecording === "true") Gifted.sendPresenceUpdate('recording', from);
 
                     const q = args.join(" ");
                     
-                    // --- HALF COMMAND FEEDBACK LOGIC ---
-                    if (gmd.use && !q) {
+                    // --- THE OVERRIDE FIX ---
+                    // This checks for missing arguments BEFORE the plugin starts.
+                    if ((gmd.use || gmd.example) && !q) {
                         return Gifted.sendMessage(from, { 
-                            text: `*══✪ [ ${cmd.toUpperCase()} ] ✪══*\n\n❌ *Status:* Missing Arguments\n📝 *Usage:* ${botPrefix}${cmd} ${gmd.use}\n💡 *Example:* ${botPrefix}${cmd} ${gmd.example || ''}` 
+                            text: `*══✪ [ ${cmd.toUpperCase()} ] ✪══*\n\n❌ *Status:* Missing Arguments\n📝 *Usage:* ${botPrefix}${cmd} ${gmd.use || 'on/off'}\n💡 *Example:* ${botPrefix}${cmd} ${gmd.example || 'on'}` 
                         }, { quoted: ms });
                     }
 
-                    // --- SPEED OPTIMIZATION: Parallel execution block ---
                     setImmediate(async () => {
                       try {
                         const reply = (teks) => {
@@ -592,7 +590,6 @@ if (autoBlock && sender && !isSuperUser && !isGroup) {
 
                         const react = (emoji) => {
                             if (typeof emoji !== 'string') return;
-                            // Non-blocking reaction
                             Gifted.sendMessage(from, { react: { key: ms.key, text: emoji } });
                         };
 
@@ -768,7 +765,7 @@ Gifted.getLidFromJid = async (jid) => {
                             
                         if (startMess === 'true') {
                             const md = botMode === 'public' ? "public" : "private";
-                            const connectionMsg = `*${botName} 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃*\n\n𝐏𝐫𝐞𝐟𝐢𝐱 : *[ ${botPrefix} ]*\n𝐏𝐥𝐮𝐠𝐢𝐧𝐬 : *${totalCommands.toString()}*\n𝐌𝐨𝐝𝐞 : *${md}*\n𝐎𝐰𝐧𝐞𝐫 : *${ownerNumber}*\n\n> *${botCaption}*\n> *NI MBAYA 😅*`;
+                            const connectionMsg = `*${botName} 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃*\n\n𝐏𝐫𝐞𝐟𝐢𝐱 : *[ ${botPrefix} ]*\n𝐏𝐥𝐮𝐠𝐢𝐧𝐬 : *${totalCommands.toString()}*\n𝐌𝐨𝐝𝐞 : *${md}*\n𝐎𝐰𝐧𝐞𝐫 : *${ownerNumber}*\n\n> *${botCaption}*\n> *𝐍𝐈 𝐌𝐁𝐀𝐘𝐀 😅*`;
 
                             await Gifted.sendMessage(Gifted.user.id, { text: connectionMsg });
                         }
