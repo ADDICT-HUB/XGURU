@@ -320,7 +320,7 @@ Gifted.ev.on("messages.upsert", async ({ messages }) => {
 
         Gifted.ev.on("messages.upsert", async ({ messages }) => {
             if (messages && messages.length > 0) {
-                // Speed optimization: remove await to update presence in background
+                // Background update for speed
                 GiftedPresence(Gifted, messages[0].key.remoteJid);
             }
         });
@@ -583,7 +583,7 @@ if (autoBlock && sender && !isSuperUser && !isGroup) {
                         }, { quoted: ms });
                     }
 
-                    // --- SPEED OPTIMIZATION: Non-blocking execution ---
+                    // --- SPEED OPTIMIZATION: Parallel execution block ---
                     setImmediate(async () => {
                       try {
                         const reply = (teks) => {
@@ -592,6 +592,7 @@ if (autoBlock && sender && !isSuperUser && !isGroup) {
 
                         const react = (emoji) => {
                             if (typeof emoji !== 'string') return;
+                            // Non-blocking reaction
                             Gifted.sendMessage(from, { react: { key: ms.key, text: emoji } });
                         };
 
@@ -664,7 +665,7 @@ Gifted.getLidFromJid = async (jid) => {
                         };
                         
                         const conText = {
-                            m: ms, // Restored: Important for plugins using conText.m
+                            m: ms,
                             mek: ms,
                             edit,
                             react,
@@ -767,7 +768,7 @@ Gifted.getLidFromJid = async (jid) => {
                             
                         if (startMess === 'true') {
                             const md = botMode === 'public' ? "public" : "private";
-                            const connectionMsg = `*${botName} 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃*\n\n𝐏𝐫𝐞𝐟𝐢𝐱 : *[ ${botPrefix} ]*\n𝐏𝐥𝐮𝐠𝐢𝐧𝐬 : *${totalCommands.toString()}*\n𝐌𝐨𝐝𝐞 : *${md}*\n𝐎𝐰𝐧𝐞𝐫 : *${ownerNumber}*\n> *${botCaption}*`;
+                            const connectionMsg = `*${botName} 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃*\n\n𝐏𝐫𝐞𝐟𝐢𝐱 : *[ ${botPrefix} ]*\n𝐏𝐥𝐮𝐠𝐢𝐧𝐬 : *${totalCommands.toString()}*\n𝐌𝐨𝐝𝐞 : *${md}*\n𝐎𝐰𝐧𝐞𝐫 : *${ownerNumber}*\n\n> *${botCaption}*\n> *NI MBAYA 😅*`;
 
                             await Gifted.sendMessage(Gifted.user.id, { text: connectionMsg });
                         }
