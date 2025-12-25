@@ -1,134 +1,80 @@
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
-<h1 align="center"> 𝐗 𝐆𝐔𝐑𝐔 𝐕𝐄𝐑𝐒𝐈𝐎𝐍 𝟓.𝟎.𝟎 </h1>
+<a><img src="https://i.imgur.com/LyHic3i.gif"/></a>
 
-- Bot is safe for cloud platforms (Render, Koyeb, Panels, VPS).
-- Fork and deploy your own copy. Support is only for self-hosted instances.
-
-<details>
-<summary>NOTICE!!! (TAP TO READ)</summary>
-
-- For VPS / Bot Panels, **download ZIP instead of git clone** to avoid media & downloader issues.
-
-<a href="https://github.com/ADDICT-HUB/XGURU-/archive/refs/heads/main.zip">
-<img src="https://img.shields.io/badge/DOWNLOAD%20ZIP-yellow" width="150">
-</a>
-
-</details>
-
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
+<h1 align="center">⚡ X GURU BOT ⚡</h1>
+<h3 align="center">Version 5.0.0</h3>
 
 <p align="center">
-<a href="https://github.com/ADDICT-HUB">
-<img title="GITHUB" src="https://img.shields.io/badge/GITHUB-GURU TECH-red.svg?style=for-the-badge&logo=github">
-</a>
+🤖 WhatsApp Automation • ☁️ Cloud Ready • ⚡ High Performance
 </p>
 
-<p align="center">
-<a href="https://github.com/ADDICT-HUB?tab=followers">
-<img title="Followers" src="https://img.shields.io/github/followers/ADDICT-HUB?label=Followers&style=social">
-</a>
-<a href="https://github.com/ADDICT-HUB/XGURU-/stargazers/">
-<img title="Stars" src="https://img.shields.io/github/stars/ADDICT-HUB/XGURU-?style=social">
-</a>
-<a href="https://github.com/ADDICT-HUB/XGURU-/network/members">
-<img title="Forks" src="https://img.shields.io/github/forks/ADDICT-HUB/XGURU-?style=social">
-</a>
-<a href="https://github.com/ADDICT-HUB/XGURU-/watchers">
-<img title="Watching" src="https://img.shields.io/github/watchers/ADDICT-HUB/XGURU-?label=Watching&style=social">
-</a>
-</p>
+<a><img src="https://i.imgur.com/LyHic3i.gif"/></a>
 
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
+## 🚀 QUICK START (FOLLOW IN ORDER)
 
-## 𝟏. 𝐒𝐄𝐓 𝐔𝐏
-
-### 👇 FORK REPOSITORY (REQUIRED)
-<details>
-<summary>CLICK HERE</summary>
-
-- Forking ensures safe updates and personal deployment.
-
-<a href="https://github.com/ADDICT-HUB/XGURU-/fork">
-<img src="https://img.shields.io/badge/FORK%20REPO-purple" width="150">
-</a>
-
-</details>
-
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
-
-## 𝟐. 𝐋𝐈𝐍𝐊 𝐖𝐈𝐓𝐇 𝐖𝐇𝐀𝐓𝐒𝐀𝐏𝐏
-
-<details>
-<summary>GET SESSION ID</summary>
-
+<!-- GET SESSION FIRST -->
+### 🔐 1️⃣ GET SESSION ID (REQUIRED)
 <a href="https://xguru.onrender.com">
-<img src="https://img.shields.io/badge/PAIR%20DEVICE-green" width="150">
+<img src="https://img.shields.io/badge/GET%20SESSION-WHATSAPP-25D366?style=for-the-badge&logo=whatsapp" height="48">
 </a>
 
-- Generate your WhatsApp session and save it securely.
+<p align="center"><i>Pair your WhatsApp & save your session securely</i></p>
 
-</details>
+---
 
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
+<!-- FORK BUTTON -->
+### 🍴 2️⃣ FORK REPOSITORY (REQUIRED)
+<a href="https://github.com/ADDICT-HUB/XGURU-/fork">
+<img src="https://img.shields.io/badge/FORK%20REPO-GITHUB-black?style=for-the-badge&logo=github" height="48">
+</a>
 
-## 𝟑. 𝐃𝐄𝐏𝐋𝐎𝐘𝐌𝐄𝐍𝐓
+<p align="center"><i>Forking ensures safe updates & personal deployment</i></p>
 
-### (A) RENDER DEPLOYMENT
-<details>
-<summary>TAP TO OPEN</summary>
+<a><img src="https://i.imgur.com/LyHic3i.gif"/></a>
 
+## ☁️ 3️⃣ DEPLOY X GURU
+
+<!-- HEROKU -->
+###  HEROKU (ONE CLICK)
+<a href="https://heroku.com/deploy?template=https://github.com/ADDICT-HUB/XGURU-">
+<img src="https://www.herokucdn.com/deploy/button.svg" height="48">
+</a>
+
+---
+
+<!-- RENDER -->
+###  RENDER
 <a href="https://dashboard.render.com/signup">
-<img src="https://img.shields.io/badge/RENDER%20SIGNUP-green" width="150">
+<img src="https://render.com/images/deploy-to-render-button.svg" height="48">
 </a>
 
-</details>
+---
 
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
-
-### (B) KOYEB DEPLOYMENT
-<details>
-<summary>TAP TO OPEN</summary>
-
+<!-- KOYEB -->
+###  KOYEB
 <a href="https://app.koyeb.com/auth/signup">
-<img src="https://img.shields.io/badge/KOYEB%20SIGNUP-purple" width="150">
+<img src="https://www.koyeb.com/static/images/deploy/button.svg" height="48">
 </a>
 
-</details>
+---
 
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
-
-### (C) BOT HOSTING PANEL (ZIP METHOD)
-<details>
-<summary>TAP TO OPEN</summary>
-
-<a href="https://github.com/ADDICT-HUB/XGURU-/archive/refs/heads/main.zip">
-<img src="https://img.shields.io/badge/DOWNLOAD%20FILES-yellow" width="150">
-</a>
-
+<!-- BOT PANEL -->
+### 🧰 BOT HOSTING PANEL
 <a href="https://bot-hosting.net">
-<img src="https://img.shields.io/badge/BOT%20HOSTING%20PANEL-gold" width="150">
+<img src="https://img.shields.io/badge/DEPLOY-BOT%20PANEL-darkred?style=for-the-badge&logo=linux" height="48">
 </a>
 
-</details>
+---
 
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
+<!-- ZIP DOWNLOAD -->
+### 📦 ZIP (PANELS / VPS)
+<a href="https://github.com/ADDICT-HUB/XGURU-/archive/refs/heads/main.zip">
+<img src="https://img.shields.io/badge/DOWNLOAD-ZIP-orange?style=for-the-badge&logo=github" height="48">
+</a>
 
-## 𝟒. 𝐔𝐏𝐃𝐀𝐓𝐄𝐒 & 𝐒𝐔𝐏𝐏𝐎𝐑𝐓
+<a><img src="https://i.imgur.com/LyHic3i.gif"/></a>
 
-<details>
-<summary>CLICK HERE</summary>
-
-- Owner: **GuruTech**
-- Bot Name: **X GURU**
-- WhatsApp Newsletter:  
-  https://whatsapp.com/channel/120363421164015033
-
-</details>
-
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
-
-## 𝟓. 𝐑𝐄𝐏𝐎 𝐒𝐓𝐀𝐑 𝐇𝐈𝐒𝐓𝐎𝐑𝐘
-
-[![X GURU](https://api.star-history.com/svg?repos=ADDICT-HUB/XGURU-&type=Timeline)](#)
-
-<a><img src='https://i.imgur.com/LyHic3i.gif'/></a>
+## ⚙️ ENVIRONMENT VARIABLES
+```env
+SESSION_ID=your_session_id_here
+OWNER_NUMBER=254xxxxxxxxx
+BOT_NAME=X GURU
