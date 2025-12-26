@@ -58,6 +58,7 @@ const path = require("path");
 const { Boom } = require("@hapi/boom");
 const express = require("express");
 
+// Destructure configuration for easier access
 const {
     MODE: botMode, 
     BOT_PIC: botPic, 
@@ -69,13 +70,14 @@ const {
     NEWSLETTER_JID: newsletterJid
 } = config;
 
+// User-Specific Details
 const botName = "X GURU";
 const ownerName = "GuruTech";
 const PORT = process.env.PORT || 4420;
 const app = express();
 let Gifted;
 
-// Ensure temp directory exists for media processing to prevent crashes
+// Ensure temp directory exists to prevent media processing crashes
 if (!fs.existsSync('./gift/temp')) fs.mkdirSync('./gift/temp', { recursive: true });
 
 app.use(express.static("gift"));
@@ -84,7 +86,7 @@ app.listen(PORT, () => console.log(`Server Running on Port: ${PORT}`));
 
 const sessionDir = path.join(__dirname, "gift", "session");
 
-// Load and Decrypt Session
+// Decompress and load session credentials
 loadSession();
 
 let store; 
@@ -115,7 +117,7 @@ async function startGifted() {
                 return { conversation: 'X-GURU Engine' };
             },
             patchMessageBeforeSending: (message) => {
-                // Fix for "Buttons payload invalid" error
+                // Resolves "Buttons payload invalid" error from your screenshots
                 const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage || message.interactiveMessage);
                 if (requiresPatch) {
                     return {
@@ -139,7 +141,7 @@ async function startGifted() {
 
         Gifted.ev.on('creds.update', saveCreds);
 
-        // CONNECTION HANDLER WITH GURUTECH DETAILS
+        // CONNECTION HANDLER WITH MODERN TABLE
         Gifted.ev.on("connection.update", async (update) => {
             const { connection, lastDisconnect } = update;
             if (connection === "open") {
@@ -149,7 +151,7 @@ async function startGifted() {
 
                 const statusTable = `
 ╔════════════════════════╗
-  🌟 *${botName} IS LIVE* 🌟
+  🌟 *${botName.toUpperCase()} IS LIVE* 🌟
 ╠════════════════════════╣
   👤 *Owner:* ${ownerName}
   🛠️ *Prefix:* ${botPrefix}
@@ -165,7 +167,7 @@ async function startGifted() {
                     text: statusTable,
                     contextInfo: {
                         externalAdReply: {
-                            title: `${botName} SUPREME`,
+                            title: `${botName} XGURU`,
                             body: "NI MBAYA 😅",
                             thumbnail: await gmdBuffer(botPic || 'https://telegra.ph/file/dc3a6136f4528da8430b3.jpg'),
                             sourceUrl: "https://whatsapp.com/channel/0029VaYV9sIIyPtSe9Z6d63v",
@@ -178,19 +180,21 @@ async function startGifted() {
             if (connection === "close") {
                 const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
                 if (reason !== DisconnectReason.loggedOut) {
-                    console.log("Reconnecting in 5s...");
+                    console.log("Reconnecting...");
                     setTimeout(() => startGifted(), 5000);
                 }
             }
         });
 
-        // MESSAGE UPSERT HANDLER
+        // MESSAGE HANDLER
         Gifted.ev.on("messages.upsert", async ({ messages }) => {
             const ms = messages[0];
             if (!ms?.message || !ms.key.remoteJid) return;
 
             const from = ms.key.remoteJid;
             const type = getContentType(ms.message);
+            
+            // Safe body extraction to avoid TypeError in screenshots
             const body = (type === 'conversation') ? ms.message.conversation : 
                          (type === 'extendedTextMessage') ? ms.message.extendedTextMessage.text : 
                          (ms.message[type]?.caption) || '';
@@ -200,13 +204,13 @@ async function startGifted() {
             const args = body.trim().split(/ +/).slice(1);
             const q = args.join(" ");
 
-            // SENDER & OWNER DETECTION
+            // Improved Owner Detection
             const senderJid = ms.key.participant || ms.key.remoteJid || Gifted.user.id;
             const senderNumber = senderJid.split('@')[0].replace(/[^0-9]/g, '');
             const cleanOwner = ownerNumber.replace(/[^0-9]/g, '');
             const isSuperUser = [cleanOwner, Gifted.user.id.split(':')[0]].includes(senderNumber) || ms.key.fromMe;
 
-            // ANTI-DELETE LOGIC
+            // Anti-Delete Implementation
             if (antiDelete === 'true' && !ms.key.fromMe) {
                 if (!giftech.chats[from]) giftech.chats[from] = [];
                 giftech.chats[from].push({ ...ms, originalSender: senderJid });
@@ -220,13 +224,7 @@ async function startGifted() {
                 }
             }
 
-            // AUTO REACT
-            if (autoReact === "true" && !ms.key.fromMe && body) {
-                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                await GiftedAutoReact(randomEmoji, ms, Gifted).catch(() => null);
-            }
-
-            // COMMAND EXECUTION
+            // Execute commands
             if (isCmd && command) {
                 const cmd = commands.find(c => c.pattern === command || (c.aliases && c.aliases.includes(command)));
                 if (cmd) {
@@ -240,7 +238,7 @@ async function startGifted() {
                             m: ms, q, args, isCmd, command, reply, react, isSuperUser, sender: senderJid, pushName: ms.pushName || 'User', botPrefix
                         });
                     } catch (e) {
-                        console.error("Command Error:", e);
+                        console.error("Command Execution Error:", e);
                         await Gifted.sendMessage(from, { text: `❌ Error: ${e.message}` }, { quoted: ms });
                     }
                 }
@@ -250,18 +248,16 @@ async function startGifted() {
         if (autoBio === 'true') setInterval(() => GiftedAutoBio(Gifted), 60000);
         Gifted.ev.on("call", async (json) => { await GiftedAnticall(json, Gifted); });
 
-        // Load Plugins
+        // Dynamic Plugin Loading
         const pluginsPath = path.join(__dirname, "gifted");
         if (fs.existsSync(pluginsPath)) {
             fs.readdirSync(pluginsPath).forEach(file => {
-                if (file.endsWith(".js")) {
-                    try { require(path.join(pluginsPath, file)); } catch (e) { console.error(`Error loading plugin ${file}:`, e); }
-                }
+                if (file.endsWith(".js")) require(path.join(pluginsPath, file));
             });
         }
 
     } catch (e) {
-        console.error("Startup Failure:", e);
+        console.error("Critical Startup Error:", e);
         setTimeout(() => startGifted(), 10000);
     }
 }
