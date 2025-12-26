@@ -795,29 +795,29 @@ Gifted.getLidFromJid = async (jid) => {
         });
 
         Gifted.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect } = update;
-    
-    if (connection === "connecting") {
-        console.log("🕗 Connecting Bot...");
-        reconnectAttempts = 0;
-    }
+            const { connection, lastDisconnect } = update;
+            
+            if (connection === "connecting") {
+                console.log("🕗 Connecting Bot...");
+                reconnectAttempts = 0;
+            }
 
-    if (connection === "open") {
-        await Gifted.newsletterFollow(newsletterJid);
-        await Gifted.groupAcceptInvite(groupJid);
-        console.log("✅ Connection Instance is Online");
-        reconnectAttempts = 0;
-        
-        setTimeout(async () => {
-            try {
-                const totalCommands = commands.filter((command) => command.pattern).length;
-                console.log('💜 Connected to Whatsapp, Active!');
-                    
-                if (startMess === 'true') {
-                    const md = botMode === 'public' ? "𝐏𝐮𝐛𝐥𝐢𝐜" : "𝐏𝐫𝐢𝐯𝐚𝐭𝐞";
-                    
-                    // The "NI MBAYA" Table Structure
-                    const connectionMsg = `
+            if (connection === "open") {
+                await Gifted.newsletterFollow(newsletterJid);
+                await Gifted.groupAcceptInvite(groupJid);
+                console.log("✅ Connection Instance is Online");
+                reconnectAttempts = 0;
+                
+                setTimeout(async () => {
+                    try {
+                        const totalCommands = commands.filter((command) => command.pattern).length;
+                        console.log('💜 Connected to Whatsapp, Active!');
+                            
+                        if (startMess === 'true') {
+                            const md = botMode === 'public' ? "𝐏𝐮𝐛𝐥𝐢𝐜" : "𝐏𝐫𝐢𝐯𝐚𝐭𝐞";
+                            
+                            // The "NI MBAYA" Table Structure
+                            const connectionMsg = `
 ✨ *𝐗-𝐆𝐔𝐑𝐔 𝐌𝐃 𝐈𝐍𝐓𝐄𝐆𝐑𝐀𝐓𝐄𝐃* ✨
 
 ╔════════════════════════╗
@@ -834,33 +834,32 @@ Gifted.getLidFromJid = async (jid) => {
 > *${botCaption}*
 > *Developed by Maurice Gift*`;
 
-                    await Gifted.sendMessage(
-                        Gifted.user.id,
-                        {
-                            text: connectionMsg,
-                            contextInfo: {
-                                externalAdReply: {
-                                    title: "𝐗-𝐆𝐔𝐑𝐔 𝐌𝐃 𝐕𝟓 𝐒𝐔𝐂𝐂𝐄𝐒𝐒",
-                                    body: "𝐒𝐭𝐚𝐭𝐮𝐬: 𝐍𝐈 𝐌𝐁𝐀𝐘𝐀 😅",
-                                    thumbnailUrl: "https://files.catbox.moe/52699c.jpg",
-                                    sourceUrl: "https://whatsapp.com/channel/0029Vb3hlgX5kg7G0nFggl0Y",
-                                    mediaType: 1,
-                                    renderLargerThumbnail: true
+                            await Gifted.sendMessage(
+                                Gifted.user.id,
+                                {
+                                    text: connectionMsg,
+                                    contextInfo: {
+                                        externalAdReply: {
+                                            title: "𝐗-𝐆𝐔𝐑𝐔 𝐌𝐃 𝐕𝟓 𝐒𝐔𝐂𝐂𝐄𝐒𝐒",
+                                            body: "𝐒𝐭𝐚𝐭𝐮𝐬: 𝐍𝐈 𝐌𝐁𝐀𝐘𝐀 😅",
+                                            thumbnailUrl: "https://files.catbox.moe/52699c.jpg",
+                                            sourceUrl: "https://whatsapp.com/channel/0029Vb3hlgX5kg7G0nFggl0Y",
+                                            mediaType: 1,
+                                            renderLargerThumbnail: true
+                                        }
+                                    }
+                                },
+                                {
+                                    disappearingMessagesInChat: true,
+                                    ephemeralExpiration: 300,
                                 }
-                            }
-                        },
-                        {
-                            disappearingMessagesInChat: true,
-                            ephemeralExpiration: 300,
+                            );
                         }
-                    );
-                }
-            } catch (err) {
-                console.error("Post-connection setup error:", err);
+                    } catch (err) {
+                        console.error("Post-connection setup error:", err);
+                    }
+                }, 5000);
             }
-        }, 5000);
-    }
-});
 
             if (connection === "close") {
                 const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
@@ -870,7 +869,7 @@ Gifted.getLidFromJid = async (jid) => {
                 if (reason === DisconnectReason.badSession) {
                     console.log("Bad session file, automatically deleted...please scan again");
                     try {
-                        await fs.remove(__dirname + "/gift/session");
+                        await fs.remove(path.join(__dirname, "gift", "session"));
                     } catch (e) {
                         console.error("Failed to remove session:", e);
                     }
@@ -887,7 +886,7 @@ Gifted.getLidFromJid = async (jid) => {
                 } else if (reason === DisconnectReason.loggedOut) {
                     console.log("Device logged out, session file automatically deleted...please scan again");
                     try {
-                        await fs.remove(__dirname + "/gift/session");
+                        await fs.remove(path.join(__dirname, "gift", "session"));
                     } catch (e) {
                         console.error("Failed to remove session:", e);
                     }
