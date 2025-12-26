@@ -51,56 +51,32 @@ const {
     GiftedAntiDelete
 } = require("./gift");
 
-const { Sticker, createSticker, StickerTypes } = require("wa-sticker-formatter");
 const pino = require("pino");
 const config = require("./config");
-const axios = require("axios");
-const googleTTS = require("google-tts-api");
 const fs = require("fs-extra");
 const path = require("path");
 const { Boom } = require("@hapi/boom");
 const express = require("express");
-const { promisify } = require('util');
-const stream = require('stream');
-const pipeline = promisify(stream.pipeline);
 
 const {
     MODE: botMode, 
     BOT_PIC: botPic, 
-    FOOTER: botFooter, 
-    CAPTION: botCaption, 
-    VERSION: botVersion, 
     OWNER_NUMBER: ownerNumber, 
-    OWNER_NAME: ownerName,  
-    BOT_NAME: botName, 
     PREFIX: botPrefix,
-    PRESENCE: botPresence,
-    CHATBOT: chatBot,
-    CHATBOT_MODE: chatBotMode,
-    STARTING_MESSAGE: startMess,
-    ANTIDELETE: antiDelete,
-    ANTILINK: antiLink,
-    ANTICALL: antiCall,
-    TIME_ZONE: timeZone,
-    BOT_REPO: giftedRepo,
-    GC_JID: groupJid,
-    NEWSLETTER_JID: newsletterJid,
-    NEWSLETTER_URL: newsletterUrl,
     AUTO_REACT: autoReact,
-    AUTO_READ_STATUS: autoReadStatus,
-    AUTO_LIKE_STATUS: autoLikeStatus,
-    STATUS_LIKE_EMOJIS: statusLikeEmojis,
-    AUTO_REPLY_STATUS: autoReplyStatus,
-    STATUS_REPLY_TEXT: statusReplyText,
-    AUTO_READ_MESSAGES: autoRead,
-    AUTO_BLOCK: autoBlock,
-    AUTO_BIO: autoBio } = config;
+    AUTO_BIO: autoBio,
+    ANTIDELETE: antiDelete,
+    NEWSLETTER_JID: newsletterJid
+} = config;
 
+const botName = "X GURU";
+const ownerName = "GuruTech";
 const PORT = process.env.PORT || 4420;
 const app = express();
 let Gifted;
 
-logger.level = "silent";
+// Ensure temp directory exists for media processing to prevent crashes
+if (!fs.existsSync('./gift/temp')) fs.mkdirSync('./gift/temp', { recursive: true });
 
 app.use(express.static("gift"));
 app.get("/", (req, res) => res.sendFile(__dirname + "/gift/gifted.html"));
@@ -108,27 +84,25 @@ app.listen(PORT, () => console.log(`Server Running on Port: ${PORT}`));
 
 const sessionDir = path.join(__dirname, "gift", "session");
 
+// Load and Decrypt Session
 loadSession();
 
 let store; 
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 50;
-const RECONNECT_DELAY = 5000;
+let giftech = { chats: {} };
 
 async function startGifted() {
     try {
-        const { version, isLatest } = await fetchLatestWaWebVersion();
+        const { version } = await fetchLatestWaWebVersion();
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
         
-        if (store) {
-            store.destroy();
-        }
+        if (store) store.destroy();
         store = new gmdStore();
         
         const giftedSock = {
             version,
             logger: pino({ level: "silent" }),
-            browser: ['X-GURU', "Chrome", "1.0.0"],
+            printQRInTerminal: false,
+            browser: [botName, "Chrome", "1.0.0"],
             auth: {
                 creds: state.creds,
                 keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" }))
@@ -138,18 +112,23 @@ async function startGifted() {
                     const msg = store.loadMessage(key.remoteJid, key.id);
                     return msg?.message || undefined;
                 }
-                return { conversation: 'X-Guru Engine Error' };
+                return { conversation: 'X-GURU Engine' };
             },
-            connectTimeoutMs: 60000,
-            defaultQueryTimeoutMs: 60000,
-            keepAliveIntervalMs: 10000,
-            markOnlineOnConnect: true,
-            syncFullHistory: false,
-            generateHighQualityLinkPreview: false,
             patchMessageBeforeSending: (message) => {
-                const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage);
+                // Fix for "Buttons payload invalid" error
+                const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage || message.interactiveMessage);
                 if (requiresPatch) {
-                    return { viewOnceMessage: { message: { messageContextInfo: { deviceListMetadataVersion: 2, deviceListMetadata: {}, }, ...message, }, }, };
+                    return {
+                        viewOnceMessage: {
+                            message: {
+                                messageContextInfo: {
+                                    deviceListMetadataVersion: 2,
+                                    deviceListMetadata: {},
+                                },
+                                ...message,
+                            },
+                        },
+                    };
                 }
                 return message;
             }
@@ -158,82 +137,57 @@ async function startGifted() {
         Gifted = giftedConnect(giftedSock);
         store.bind(Gifted.ev);
 
-        Gifted.ev.process(async (events) => {
-            if (events['creds.update']) {
-                await saveCreds();
-            }
-        });
+        Gifted.ev.on('creds.update', saveCreds);
 
-        // AUTO REACT LOGIC
-        if (autoReact === "true") {
-            Gifted.ev.on('messages.upsert', async (mek) => {
-                let ms = mek.messages[0];
-                try {
-                    if (ms.key.fromMe) return;
-                    if (!ms.key.fromMe && ms.message) {
-                        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                        await GiftedAutoReact(randomEmoji, ms, Gifted);
-                    }
-                } catch (err) { console.error('Auto reaction error:', err); }
-            });
-        }
-
-        // ANTI-DELETE LOGIC
-        let giftech = { chats: {} };
-        Gifted.ev.on("messages.upsert", async ({ messages }) => {
-            try {
-                const ms = messages[0];
-                if (!ms?.message || !ms?.key?.remoteJid || ms.key.fromMe) return;
-                if (ms.key.remoteJid === 'status@broadcast') return;
-
-                const sender = ms.key.participant || ms.key.remoteJid;
-                if (!giftech.chats[ms.key.remoteJid]) giftech.chats[ms.key.remoteJid] = [];
-                giftech.chats[ms.key.remoteJid].push({ ...ms, originalSender: sender, timestamp: Date.now() });
-
-                if (ms.message?.protocolMessage?.type === 0) {
-                    const deletedId = ms.message.protocolMessage.key.id;
-                    const deletedMsg = giftech.chats[ms.key.remoteJid].find(m => m.key.id === deletedId);
-                    if (deletedMsg) {
-                        await GiftedAntiDelete(Gifted, deletedMsg, ms.key, sender, deletedMsg.originalSender, ownerNumber + "@s.whatsapp.net");
-                    }
-                }
-            } catch (e) { console.log("Anti-Delete Error", e); }
-        });
-
-        // AUTO BIO
-        if (autoBio === 'true') {
-            setInterval(() => GiftedAutoBio(Gifted), 60000);
-        }
-
-        // ANTI-CALL
-        Gifted.ev.on("call", async (json) => { await GiftedAnticall(json, Gifted); });
-
-        // CONNECTION UPDATES (FIXED FOR RENDER)
+        // CONNECTION HANDLER WITH GURUTECH DETAILS
         Gifted.ev.on("connection.update", async (update) => {
             const { connection, lastDisconnect } = update;
             if (connection === "open") {
-                console.log("✅ SUCCESS: X-GURU IS ONLINE");
-                await Gifted.newsletterFollow(newsletterJid);
-                // Send Startup Message
-                const msg = `*X-GURU SUPREME CONNECTED*\n\nPrefix: ${botPrefix}\nMode: ${botMode}\nPlugins: ${commands.length}`;
-                await Gifted.sendMessage(Gifted.user.id, { text: msg });
+                console.log(`✅ SUCCESS: ${botName} IS ONLINE`);
+                
+                if (newsletterJid) await Gifted.newsletterFollow(newsletterJid);
+
+                const statusTable = `
+╔════════════════════════╗
+  🌟 *${botName} IS LIVE* 🌟
+╠════════════════════════╣
+  👤 *Owner:* ${ownerName}
+  🛠️ *Prefix:* ${botPrefix}
+  📡 *Mode:* ${botMode}
+  📁 *Plugins:* ${commands.length}
+  🕒 *Time:* ${new Date().toLocaleString()}
+╠════════════════════════╣
+  🔗 *Channel:* https://whatsapp.com/channel/0029VaYV9sIIyPtSe9Z6d63v
+╚════════════════════════╝
+*Note:* NI MBAYA 😅`;
+
+                await Gifted.sendMessage(Gifted.user.id, { 
+                    text: statusTable,
+                    contextInfo: {
+                        externalAdReply: {
+                            title: `${botName} SUPREME`,
+                            body: "NI MBAYA 😅",
+                            thumbnail: await gmdBuffer(botPic || 'https://telegra.ph/file/dc3a6136f4528da8430b3.jpg'),
+                            sourceUrl: "https://whatsapp.com/channel/0029VaYV9sIIyPtSe9Z6d63v",
+                            mediaType: 1,
+                            renderLargerThumbnail: true
+                        }
+                    }
+                });
             }
             if (connection === "close") {
                 const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-                console.log("Connection closed. Reason:", reason);
-                if (reason === DisconnectReason.connectionReplaced || reason === 440) {
-                    console.log("Conflict detected. Waiting 10s...");
-                    setTimeout(() => startGifted(), 10000);
-                } else if (reason !== DisconnectReason.loggedOut) {
-                    startGifted();
+                if (reason !== DisconnectReason.loggedOut) {
+                    console.log("Reconnecting in 5s...");
+                    setTimeout(() => startGifted(), 5000);
                 }
             }
         });
 
-        // MAIN COMMAND HANDLER
+        // MESSAGE UPSERT HANDLER
         Gifted.ev.on("messages.upsert", async ({ messages }) => {
             const ms = messages[0];
-            if (!ms?.message) return;
+            if (!ms?.message || !ms.key.remoteJid) return;
 
             const from = ms.key.remoteJid;
             const type = getContentType(ms.message);
@@ -246,12 +200,33 @@ async function startGifted() {
             const args = body.trim().split(/ +/).slice(1);
             const q = args.join(" ");
 
-            // SENDER & OWNER DETECTION (FIXED)
-            const senderJid = ms.key.participant || ms.key.remoteJid;
-            const senderNumber = senderJid.replace(/[^0-9]/g, '');
+            // SENDER & OWNER DETECTION
+            const senderJid = ms.key.participant || ms.key.remoteJid || Gifted.user.id;
+            const senderNumber = senderJid.split('@')[0].replace(/[^0-9]/g, '');
             const cleanOwner = ownerNumber.replace(/[^0-9]/g, '');
-            const isSuperUser = senderNumber === cleanOwner || ms.key.fromMe;
+            const isSuperUser = [cleanOwner, Gifted.user.id.split(':')[0]].includes(senderNumber) || ms.key.fromMe;
 
+            // ANTI-DELETE LOGIC
+            if (antiDelete === 'true' && !ms.key.fromMe) {
+                if (!giftech.chats[from]) giftech.chats[from] = [];
+                giftech.chats[from].push({ ...ms, originalSender: senderJid });
+                
+                if (type === 'protocolMessage' && ms.message.protocolMessage.type === 0) {
+                    const deletedId = ms.message.protocolMessage.key.id;
+                    const deletedMsg = giftech.chats[from].find(m => m.key.id === deletedId);
+                    if (deletedMsg) {
+                        await GiftedAntiDelete(Gifted, deletedMsg, ms.key, senderJid, deletedMsg.originalSender, cleanOwner + "@s.whatsapp.net");
+                    }
+                }
+            }
+
+            // AUTO REACT
+            if (autoReact === "true" && !ms.key.fromMe && body) {
+                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                await GiftedAutoReact(randomEmoji, ms, Gifted).catch(() => null);
+            }
+
+            // COMMAND EXECUTION
             if (isCmd && command) {
                 const cmd = commands.find(c => c.pattern === command || (c.aliases && c.aliases.includes(command)));
                 if (cmd) {
@@ -262,27 +237,32 @@ async function startGifted() {
                         const react = (emoji) => Gifted.sendMessage(from, { react: { key: ms.key, text: emoji } });
                         
                         await cmd.function(from, Gifted, {
-                            m: ms, q, args, isCmd, command, reply, react, isSuperUser, sender: senderJid, pushName: ms.pushName, botPrefix
+                            m: ms, q, args, isCmd, command, reply, react, isSuperUser, sender: senderJid, pushName: ms.pushName || 'User', botPrefix
                         });
                     } catch (e) {
                         console.error("Command Error:", e);
-                        Gifted.sendMessage(from, { text: `❌ Error: ${e.message}` });
+                        await Gifted.sendMessage(from, { text: `❌ Error: ${e.message}` }, { quoted: ms });
                     }
                 }
             }
         });
 
-        // Load Taskflow/Plugins
+        if (autoBio === 'true') setInterval(() => GiftedAutoBio(Gifted), 60000);
+        Gifted.ev.on("call", async (json) => { await GiftedAnticall(json, Gifted); });
+
+        // Load Plugins
         const pluginsPath = path.join(__dirname, "gifted");
         if (fs.existsSync(pluginsPath)) {
             fs.readdirSync(pluginsPath).forEach(file => {
-                if (file.endsWith(".js")) require(path.join(pluginsPath, file));
+                if (file.endsWith(".js")) {
+                    try { require(path.join(pluginsPath, file)); } catch (e) { console.error(`Error loading plugin ${file}:`, e); }
+                }
             });
         }
 
     } catch (e) {
-        console.log("Startup Error:", e);
-        setTimeout(() => startGifted(), 5000);
+        console.error("Startup Failure:", e);
+        setTimeout(() => startGifted(), 10000);
     }
 }
 
