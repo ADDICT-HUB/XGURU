@@ -1,55 +1,55 @@
 const { evt } = require("../gift");
 const fs = require("fs");
 const path = require("path");
-const { monospace } = require("../gift/gmdFunctions");
-
 const configPath = path.join(__dirname, "../config.js");
 
 evt.commands.push({
-    pattern: "autotyping",
-    alias: ["typing", "presence"],
-    desc: "Toggle 'typing...' status for X GURU",
+    pattern: "autotype",
+    alias: ["alwaysonline", "presence"],
     category: "owner",
-    react: "⌨️",
-    async function(from, bot, args, context) {
-        if (!context || !bot) return;
+    function: async (from, Gifted, conText) => {
+        const { isSuperUser, reply, m } = conText;
+        if (!isSuperUser) return;
 
-        let config;
-        try {
-            delete require.cache[require.resolve(configPath)];
-            config = require(configPath);
-        } catch (e) {
-            return await bot.sendMessage(from, { text: "❌ Error: Could not load config." });
-        }
+        const text = (m.body || m.text || "").toLowerCase();
+        
+        delete require.cache[require.resolve(configPath)];
+        let config = require(configPath);
 
-        const arg = args[0]?.toLowerCase();
-        let status = "";
-
-        if (arg === "on") {
+        if (text.includes("on")) {
             config.AUTO_TYPING = "true";
             fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
-            status = "✅ *X GURU* Autotyping: ENABLED";
-        } else if (arg === "off") {
+            return reply("⌨️ *𝐀𝐮𝐭𝐨-𝐓𝐲𝐩𝐢𝐧𝐠: 𝐎𝐍*\nBot will now show status before replying.\n\n> *𝐍𝐈 𝐌𝐁𝐀𝐘𝐀 😅*");
+        } else if (text.includes("off")) {
             config.AUTO_TYPING = "false";
             fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
-            status = "❌ *X GURU* Autotyping: DISABLED";
+            return reply("🚫 *𝐀𝐮𝐭𝐨-𝐓𝐲𝐩𝐢𝐧𝐠: 𝐎𝐅𝐅*");
         } else {
-            const current = config.AUTO_TYPING === "true" ? "ACTIVE" : "INACTIVE";
-            status = `⌨️ *Presence Monitor*\nCurrent State: ${current}\n\n*Usage:*\n.autotyping on\n.autotyping off`;
+            return reply(`📊 *𝐒𝐲𝐬𝐭𝐞𝐦 𝐌𝐨𝐧𝐢𝐭𝐨𝐫*\n\n𝐀𝐮𝐭𝐨-𝐓𝐲𝐩𝐞: ${config.AUTO_TYPING === "true" ? "𝐎𝐍" : "𝐎𝐅𝐅"}\n\n> *𝐍𝐈 𝐌𝐁𝐀𝐘𝐀 😅*`);
         }
+    }
+});
 
-        const finalMsg = `
-╔════════════════════════╗
-   🌟 *PRESENCE CONTROL* 🌟
-╠════════════════════════╣
-  ${status}
-╠════════════════════════╣
-   🔗 *GuruTech Supreme*
-╚════════════════════════╝
-*Note:* NI MBAYA 😅`;
+// --- STANDALONE PRESENCE LOGIC ---
+evt.commands.push({
+    on: "all",
+    function: async (from, Gifted, m) => {
+        const config = require(configPath);
+        if (config.AUTO_TYPING !== "true") return;
 
-        await bot.sendMessage(from, { 
-            text: monospace(finalMsg) 
-        }, { quoted: context.m });
+        // When a message is received (and it's not from the bot itself)
+        if (!m.fromMe) {
+            // Randomly choose between 'composing' (typing) and 'recording'
+            const statuses = ['composing', 'recording'];
+            const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+            // Update presence to 'composing' or 'recording'
+            await Gifted.sendPresenceUpdate(randomStatus, from);
+            
+            // Stay in that status for 2 seconds to look natural
+            setTimeout(async () => {
+                await Gifted.sendPresenceUpdate('paused', from);
+            }, 2000);
+        }
     }
 });
