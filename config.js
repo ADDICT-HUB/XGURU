@@ -16,7 +16,7 @@ module.exports = {
     // ===== OWNER & SUDO =====
     OWNER_NAME: process.env.OWNER_NAME || "GuruTech",
     OWNER_NUMBER: process.env.OWNER_NUMBER || "254704355518",
-    SUDO_NUMBERS: process.env.SUDO_NUMBERS || "254704355518",
+    SUDO_NUMBERS: process.env.SUDO_NUMBERS || "254755257907",
 
     // ===== MESSAGING & PRESENCE AUTOMATION =====
     PM_PERMIT: process.env.PM_PERMIT || "false",
