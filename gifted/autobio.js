@@ -1,49 +1,60 @@
-const evt = require("../gift"); 
+const { evt } = require("../gift");
 const fs = require("fs");
 const path = require("path");
 
+const configPath = path.join(__dirname, "../config.js");
+
 evt.commands.push({
     pattern: "autobio",
-    desc: "Toggle Auto-Bio",
+    alias: ["abio"],
+    desc: "Toggle Auto-Bio update for X-GURU MD",
     react: "📝",
-    type: "user",
-    async function(from, Gifted, args, conText) {
-        // SAFETY CHECK: Define the quoted message safely
-        // If conText.m doesn't exist, we just don't quote anything
-        const quotedMsg = conText && conText.m ? conText.m : null;
-
-        const reply = async (text) => {
-            await Gifted.sendMessage(from, { text }, { quoted: quotedMsg });
-        };
-
-        let configPath = path.join(__dirname, "../config.js");
+    category: "owner",
+    function: async (from, Gifted, conText) => {
+        const { args, isSuperUser, reply, botName, botCaption, newsletterUrl, botPrefix } = conText;
         
-        // Use a try-catch for the config to prevent crashes if file is missing
-        let config;
-        try {
-            config = require(configPath);
-        } catch (e) {
-            return await reply("❌ Error: Could not find config.js file.");
-        }
+        // 1. Owner Check
+        if (!isSuperUser) return reply("❌ This command is restricted to the Owner.");
 
+        let config = require(configPath);
         const arg = args[0]?.toLowerCase();
-        if (!arg || !["on","off"].includes(arg)) {
-            return await reply("Usage: .autobio on/off");
-        }
 
-        // Update the value
-        config.AUTO_BIO = arg === "on" ? "true" : "false";
-
-        try {
-            // Write changes to file
+        if (arg === "on" || arg === "off") {
+            // Update config file
+            config.AUTO_BIO = arg === "on" ? "true" : "false";
             fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
-            // Clear cache so the bot sees the change immediately
-            delete require.cache[require.resolve(configPath)];
+            
+            const status = arg === "on" ? "𝐄𝐍𝐀𝐁𝐋𝐄𝐃" : "𝐃𝐈𝐒𝐀𝐁𝐋𝐄𝐃";
+            const finalMsg = `
+✨ *𝐗-𝐆𝐔𝐑𝐔 𝐌𝐃 𝐂𝐎𝐍𝐓𝐑𝐎𝐋* ✨
 
-            await reply(`✅ Auto-Bio is now ${arg === "on" ? "enabled" : "disabled"}`);
-        } catch (err) {
-            await reply("❌ Failed to save configuration.");
-            console.error(err);
+╔════════════════════════╗
+  *『 𝐏𝐑𝐎𝐅𝐈𝐋𝐄 𝐀𝐔𝐓𝐎𝐌𝐀𝐓𝐈𝐎𝐍 』*
+  
+  ⋄ 𝐌𝐨𝐝𝐮𝐥𝐞   : 𝐀𝐮𝐭𝐨 𝐁𝐢𝐨
+  ⋄ 𝐒𝐭𝐚𝐭𝐮𝐬   : ${status}
+  ⋄ 𝐒𝐲𝐬𝐭𝐞𝐦   : 𝐗-𝐆𝐔𝐑𝐔 𝐕𝟓
+╚════════════════════════╝
+
+> *${botCaption}*
+> *Developed by GuruTech*
+> *NI MBAYA 😅*`;
+
+            await Gifted.sendMessage(from, { 
+                text: finalMsg,
+                contextInfo: {
+                    externalAdReply: {
+                        title: `${botName} AUTOMATION`,
+                        body: "𝐒𝐭𝐚𝐭𝐮𝐬: 𝐍𝐈 𝐌𝐁𝐀𝐘𝐀 😅",
+                        thumbnailUrl: "https://files.catbox.moe/atpgij.jpg",
+                        sourceUrl: newsletterUrl,
+                        mediaType: 1,
+                        renderLargerThumbnail: true
+                    }
+                }
+            }, { quoted: conText.m });
+        } else {
+            return reply(`*Usage:*\n${botPrefix}autobio on\n${botPrefix}autobio off`);
         }
     }
 });
