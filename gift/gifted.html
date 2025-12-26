@@ -3,74 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIFTED-MD | WABOT</title>
+    <title>X-GURU | DEPLOYMENT SUCCESS</title>
 
-    <!-- Metadata for SEO -->
-    <meta name="description" content="GIFTED-MD | WABOT">
-    <meta property="og:title" content="GIFTED-MD | WABOT">
-    <meta property="og:description" content="Hey Dude, Gifted-Md is Active and Running">
-    <meta property="og:image" content="https://telegra.ph/file/c2a4d8d65722553da4c89.jpg">
-    <link rel="icon" href="https://telegra.ph/file/c2a4d8d65722553da4c89.jpg">
+    <meta name="description" content="X-GURU MD | DEPLOYMENT SUCCESS">
+    <meta property="og:title" content="X-GURU MD | WABOT">
+    <meta property="og:description" content="Hey Dude, X-GURU MD is Active and Running">
+    <meta property="og:image" content="https://files.catbox.moe/52699c.jpg">
+    <link rel="icon" href="https://files.catbox.moe/52699c.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        :root {
+            --primary-gold: #e2b05e;
+            --dark-gold: #9e7a41;
+            --bg-brown: #1a0f05;
+            --text-gold: #f3d098;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
         body {
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #121212;
+            background-color: var(--bg-brown);
+            background-image: radial-gradient(circle, #4d2d18 0%, #1a0f05 100%);
             color: white;
-            font-family: Arial, sans-serif;
             flex-direction: column;
+            overflow: hidden;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Starry background effect */
+        .stars {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+            pointer-events: none;
+            opacity: 0.4;
+            z-index: 0;
+        }
+
+        .logo-container {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 30px;
+        }
+
+        .logo-container img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid var(--primary-gold);
+            box-shadow: 0 0 30px rgba(226, 176, 94, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 20px rgba(226, 176, 94, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(226, 176, 94, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 0 20px rgba(226, 176, 94, 0.4); }
         }
 
         .glow {
-            font-size: 2em;
-            color: #fff;
-            text-align: center;
-            animation: glowing 10s infinite;
+            font-size: 2.2em;
+            font-weight: 800;
+            color: var(--primary-gold);
+            z-index: 1;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: goldGlow 3s infinite alternate;
         }
 
-        @keyframes glowing {
-            0% { text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000, 0 0 40px #ff0000, 0 0 50px #ff0000; }
-            20% { text-shadow: 0 0 10px #ff9900, 0 0 20px #ff9900, 0 0 30px #ff9900, 0 0 40px #ff9900, 0 0 50px #ff9900; }
-            40% { text-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00, 0 0 30px #ffff00, 0 0 40px #ffff00, 0 0 50px #ffff00; }
-            60% { text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00, 0 0 40px #00ff00, 0 0 50px #00ff00; }
-            80% { text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff, 0 0 50px #00ffff; }
-            100% { text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000, 0 0 40px #ff0000, 0 0 50px #ff0000; }
+        @keyframes goldGlow {
+            from { text-shadow: 0 0 10px #9e7a41, 0 0 20px #e2b05e; }
+            to { text-shadow: 0 0 20px #e2b05e, 0 0 40px #f3d098; }
+        }
+
+        .current-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 25px;
+            border-radius: 50px;
+            border: 1px solid var(--dark-gold);
+            font-size: 1.1em;
+            color: var(--text-gold);
+            margin-bottom: 30px;
+            z-index: 1;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         .developer {
-            font-size: 1.2em;
-            margin-top: 20px;
+            font-size: 1.1em;
             color: #aaa;
+            z-index: 1;
+        }
+
+        .developer span {
+            color: var(--primary-gold);
+            font-weight: bold;
+        }
+
+        .home-link {
+            margin-top: 30px;
+            text-decoration: none;
+            color: white;
+            background: linear-gradient(to bottom, #9e7a41, #3d2411);
+            padding: 10px 30px;
+            border-radius: 20px;
+            border: 1px solid var(--primary-gold);
+            font-weight: bold;
+            z-index: 1;
+            transition: 0.3s;
+        }
+
+        .home-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(226, 176, 94, 0.3);
         }
     </style>
 </head>
 <body>
-    <div class="glow">✅ DEPLOYMENT SUCCESSFUL,<br>𝐆𝐈𝐅𝐓𝐄𝐃-𝐌𝐃 𝐕𝟓 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃!</div> </br>
-    <div class="current-info" id="Info">Loading...</div>
-    <div class="developer">Developed by GiftedTech</div>
+    <div class="stars"></div>
+
+    <div class="logo-container">
+        <img src="https://files.catbox.moe/52699c.jpg" alt="X-GURU Logo">
+    </div>
+
+    <div class="glow">
+        ✅ DEPLOYMENT SUCCESSFUL<br>
+        𝐗-𝐆𝐔𝐑𝐔 𝐌𝐃 𝐕𝟓 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃!
+    </div>
+
+    <div class="current-info" id="Info">Loading System Status...</div>
+
+    <div class="developer">
+        Masterminded by <span>Maurice Gift</span><br>
+        <small style="color: #666;">© 2025 X-GURU Tech Solutions</small>
+    </div>
+
+    <a href="/" class="home-link"><i class="fas fa-house"></i> GO TO DASHBOARD</a>
+
+    <script>
+        function updateInfo() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dayName = dayNames[now.getDay()];
+            
+            // Custom Date Formatting
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const dateString = now.toLocaleDateString('en-US', options);
+
+            const timeString = `${hours}:${minutes}:${seconds}`;
+            const infoString = `${dayName} | ${dateString} | ${timeString}`;
+            
+            document.getElementById('Info').innerHTML = `<i class="far fa-clock"></i> ${infoString}`;
+        }
+
+        // Update info every second
+        setInterval(updateInfo, 1000);
+
+        // Initial call
+        updateInfo();
+    </script>
 </body>
-<script>
-    function updateInfo() {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const dayName = dayNames[now.getDay()];
-      const date = now.toLocaleDateString(); // Format date as MM/DD/YYYY
-
-      const timeString = `${hours}:${minutes}:${seconds}`;
-      const infoString = `Time: ${timeString} | Date: ${date} | Day: ${dayName}`;
-      document.getElementById('Info').textContent = infoString;
-    }
-
-    // Update info every second
-    setInterval(updateInfo, 1000);
-
-    // Initial call to set info immediately
-    updateInfo();
-</script>
 </html>
