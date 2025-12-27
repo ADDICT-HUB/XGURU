@@ -10,13 +10,17 @@ evt.commands.push({
     category: "owner",
 
     function: async (from, Gifted, conText) => {
-        const { args, isSuperUser, reply, botPrefix } = conText;
+        const { isSuperUser, reply, botPrefix, text } = conText;
 
         if (!isSuperUser) {
             return reply("❌ This command is restricted to the Owner.");
         }
 
-        const option = args[0]?.toLowerCase();
+        // ✅ SAFELY RESOLVE ARGUMENT
+        const option = text
+            ?.split(" ")
+            ?.slice(1)[0]
+            ?.toLowerCase();
 
         // Reload config cleanly
         delete require.cache[require.resolve(configPath)];
@@ -53,7 +57,7 @@ evt.commands.push({
 
         // Status / help
         return reply(
-            `📊 *𝐂𝐔𝐑𝐑𝐄𝐍𝐓 𝐒𝐓𝐀𝐓𝐔𝐒:* ${
+            `📊 *𝐂𝐔𝐑𝐄𝐍𝐓 𝐒𝐓𝐀𝐓𝐔𝐒:* ${
                 config.AUTO_READ_STATUS ? "ON" : "OFF"
             }\n\n` +
             `*Usage:*\n` +
