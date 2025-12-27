@@ -468,7 +468,8 @@ class gmdStore {
 
 module.exports = { 
     runtime, sleep, gmdFancy, stickerToImage, toAudio, toVideo, toPtt, 
-    formatVideo, formatAudio, monospace, formatBytes, gmdBuffer, gmdJson, 
+    formatVideo, formatAudio, monospace, formatBytes,
+    gmdBuffer, getFileBuffer, gmdJson, 
     gmdRandom, isUrl, gmdStore, isNumber, loadSession, verifyJidState, 
     getPerformanceInfo, uploadToCatbox 
 };
