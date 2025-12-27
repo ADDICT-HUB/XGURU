@@ -6,30 +6,33 @@ const lastTyping = {};
 
 evt.commands.push({
     on: "all",
-
-    function: async (_from, Gifted, conText) => {
+    function: async (from, Gifted, m) => {
         try {
-            const m = conText?.m;
-            if (!m?.key) return;
+            if (!m || !m.key) return;
 
             const jid = m.key.remoteJid;
-            if (!jid) return;
+            if (
+                !jid ||
+                jid === "status@broadcast" ||
+                m.key.fromMe ||
+                !jid.endsWith("@s.whatsapp.net")
+            ) return;
 
-            if (m.key.fromMe) return;
-            if (jid === "status@broadcast") return;
-
-            if (config.AUTO_TYPING !== true && config.AUTO_TYPING !== "true") {
-                return;
-            }
+            if (config.AUTO_TYPING !== true && config.AUTO_TYPING !== "true") return;
 
             const now = Date.now();
             if (lastTyping[jid] && now - lastTyping[jid] < 3000) return;
-
             lastTyping[jid] = now;
 
-            await Gifted.sendPresenceUpdate("composing", jid);
+            // Safe presence update
+            if (typeof Gifted.sendPresenceUpdate === "function") {
+                await Gifted.sendPresenceUpdate("composing", jid);
+            }
+
         } catch (err) {
-            console.error("AutoTyping error:", err);
+            console.error("AutoTyping error:", err.message);
         }
     }
 });
+
+// > *NI MBAYA 😅*
