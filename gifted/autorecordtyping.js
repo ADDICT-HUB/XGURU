@@ -16,7 +16,7 @@ gmd(
     alias: ["autorecording", "recording"]
   },
   async (from, Gifted, conText) => {
-    const { reply, react, isSuperUser, config, args } = conText;
+    const { reply, react, isSuperUser, config, text, botPrefix } = conText;
     
     // Permission check
     if (!isSuperUser) {
@@ -30,9 +30,15 @@ gmd(
       // Get current value
       const currentValue = config.AUTO_RECORD === "true" || config.AUTO_RECORD === true;
       
+      // Parse arguments from text - FIXED
+      let args = [];
+      if (text && typeof text === 'string') {
+        args = text.trim().split(/\s+/).filter(Boolean);
+      }
+      
       // Handle explicit arguments (on/off)
       let newValue;
-      if (args[0]) {
+      if (args.length > 0 && args[0]) {
         const arg = args[0].toLowerCase();
         if (arg === "on" || arg === "true" || arg === "enable") {
           newValue = "true";
@@ -41,8 +47,11 @@ gmd(
         } else {
           return reply(
             "❌ *Invalid argument!*\n\n" +
-            `*Usage:* ${config.PREFIX}autorecord <on|off>\n` +
-            `*Current Status:* ${currentValue ? "ON ✅" : "OFF ❌"}`
+            `*Usage:* ${botPrefix || '.'}autorecord <on|off>\n\n` +
+            `*Current Status:* ${currentValue ? "ON ✅" : "OFF ❌"}\n\n` +
+            `*Examples:*\n` +
+            `${botPrefix || '.'}autorecord on\n` +
+            `${botPrefix || '.'}autorecord off`
           );
         }
       } else {
@@ -144,8 +153,12 @@ evt.commands.push({
       
       // Check if AUTO_RECORD is enabled
       const { config } = conText;
-      const autoRecordEnabled = config?.AUTO_RECORD === "true" || 
-                                config?.AUTO_RECORD === true;
+      
+      // Safe config check
+      if (!config) return;
+      
+      const autoRecordEnabled = config.AUTO_RECORD === "true" || 
+                                config.AUTO_RECORD === true;
       
       if (!autoRecordEnabled) return;
       
