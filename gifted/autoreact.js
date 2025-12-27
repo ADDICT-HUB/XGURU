@@ -1,22 +1,15 @@
 const { evt } = require("../gift");
-const fs = require("fs");
-const configPath = require.resolve("../config.js");
+const config = require("../config");
 
 evt.commands.push({
-    pattern: "autoreact",
-    desc: "Toggle Auto-Reaction",
-    react: "💛",
-    type: "user",
-    async function(from, bot, args, context) {
-        let config = require(configPath);
-        const arg = args[0]?.toLowerCase();
-
-        if (arg === "on") config.AUTO_REACT = "true";
-        else if (arg === "off") config.AUTO_REACT = "false";
-
-        fs.writeFileSync(configPath, "module.exports = " + JSON.stringify(config, null, 4));
-        const status = config.AUTO_REACT === "true" ? "enabled" : "disabled";
-        await context.reply(`✅ Auto-Reaction is now ${status}`);
-        delete require.cache[configPath];
-    },
+    on: "all",
+    function: async (from, Gifted, m) => {
+        if (config.AUTO_REACT !== "true" || !m.fromMe) return;
+        
+        try {
+            await Gifted.sendMessage(from, {
+                react: { text: "😅", key: m.key }
+            });
+        } catch (e) {}
+    }
 });
