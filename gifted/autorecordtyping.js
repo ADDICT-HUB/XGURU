@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { gmd } = require("../gift");
+const { gmd, evt } = require("../gift");
 
 // Determine settings file path
 const settingsPath = path.join(__dirname, "../settings.js");
@@ -134,73 +134,168 @@ gmd(
   }
 );
 
-// Additional plugin: Auto Recording presence updater
-const { evt } = require("../gift");
+// Auto Recording presence updater - COMPLETELY REWRITTEN
 const lastRecording = {};
-const RECORDING_COOLDOWN = 3000; // 3 seconds
+const RECORDING_COOLDOWN = 2000; // 2 seconds cooldown
 
 evt.commands.push({
   on: "all",
-  function: async (_from, Gifted, conText) => {
+  function: async (from, Gifted, conText) => {
     try {
+      // Get message object
       const m = conText?.m;
-      if (!m?.key) return;
-      if (m.key.fromMe) return;
+      if (!m) return;
       
-      const jid = m.key.remoteJid;
+      // Skip our own messages
+      if (m.key?.fromMe) return;
+      
+      // Get chat JID
+      const jid = m.key?.remoteJid;
       if (!jid) return;
+      
+      // Skip status broadcasts
       if (jid === "status@broadcast") return;
       
+      // Get config safely
+      const config = conText?.config;
+      if (!config) {
+        console.log("Config not available in conText");
+        return;
+      }
+      
       // Check if AUTO_RECORD is enabled
-      const { config } = conText;
-      
-      // Safe config check
-      if (!config) return;
-      
       const autoRecordEnabled = config.AUTO_RECORD === "true" || 
-                                config.AUTO_RECORD === true;
+                                config.AUTO_RECORD === true ||
+                                config.AUTO_RECORD === 1;
       
-      if (!autoRecordEnabled) return;
+      if (!autoRecordEnabled) {
+        // Debug log
+        console.log("AUTO_RECORD is disabled:", config.AUTO_RECORD);
+        return;
+      }
       
-      // Rate limiting
+      // Rate limiting per chat
       const now = Date.now();
       if (lastRecording[jid] && (now - lastRecording[jid]) < RECORDING_COOLDOWN) {
         return;
       }
       
+      // Update last recording time
       lastRecording[jid] = now;
       
-      // Determine if it's a voice/audio message
-      const isAudioMessage = m.message?.audioMessage || 
-                            m.message?.voiceMessage ||
-                            m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.audioMessage;
+      // Debug log
+      console.log(`Sending presence update for: ${jid}`);
       
-      if (isAudioMessage) {
-        // Show recording for audio messages
-        await Gifted.sendPresenceUpdate("recording", jid);
-        
-        setTimeout(async () => {
-          try {
-            await Gifted.sendPresenceUpdate("paused", jid);
-          } catch (err) {
-            // Ignore errors
-          }
-        }, 2500);
-      } else {
-        // Show typing for text messages
-        await Gifted.sendPresenceUpdate("composing", jid);
-        
-        setTimeout(async () => {
-          try {
-            await Gifted.sendPresenceUpdate("paused", jid);
-          } catch (err) {
-            // Ignore errors
-          }
-        }, 2000);
+      // Check message type
+      const msg = m.message;
+      if (!msg) return;
+      
+      const isAudioMessage = msg.audioMessage || 
+                            msg.voiceMessage ||
+                            msg.ptt;
+      
+      const isVideoMessage = msg.videoMessage;
+      
+      // Send appropriate presence
+      try {
+        if (isAudioMessage) {
+          // Show recording for audio/voice messages
+          console.log("Sending 'recording' presence");
+          await Gifted.sendPresenceUpdate("recording", jid);
+          
+          // Auto-clear after 3 seconds
+          setTimeout(async () => {
+            try {
+              await Gifted.sendPresenceUpdate("paused", jid);
+            } catch (err) {
+              // Silently ignore
+            }
+          }, 3000);
+        } else if (isVideoMessage) {
+          // Show recording for video messages
+          console.log("Sending 'recording' presence for video");
+          await Gifted.sendPresenceUpdate("recording", jid);
+          
+          setTimeout(async () => {
+            try {
+              await Gifted.sendPresenceUpdate("paused", jid);
+            } catch (err) {
+              // Silently ignore
+            }
+          }, 3000);
+        } else {
+          // Show typing for text messages
+          console.log("Sending 'composing' presence");
+          await Gifted.sendPresenceUpdate("composing", jid);
+          
+          // Auto-clear after 2 seconds
+          setTimeout(async () => {
+            try {
+              await Gifted.sendPresenceUpdate("paused", jid);
+            } catch (err) {
+              // Silently ignore
+            }
+          }, 2000);
+        }
+      } catch (presenceError) {
+        console.error("Presence update error:", presenceError.message);
       }
       
     } catch (err) {
       console.error("Auto Recording presence error:", err);
+    }
+  }
+});
+
+// Alternative approach - using message event directly
+evt.commands.push({
+  pattern: null, // Listen to all messages
+  dontAddCommandList: true,
+  function: async (from, Gifted, conText) => {
+    try {
+      const { m, config } = conText;
+      
+      if (!m || !config) return;
+      if (m.key?.fromMe) return;
+      
+      const jid = m.key?.remoteJid;
+      if (!jid || jid === "status@broadcast") return;
+      
+      // Check if enabled
+      const enabled = config.AUTO_RECORD === "true" || 
+                     config.AUTO_RECORD === true;
+      
+      if (!enabled) return;
+      
+      // Rate limiting
+      const now = Date.now();
+      const lastTime = lastRecording[jid] || 0;
+      if (now - lastTime < RECORDING_COOLDOWN) return;
+      
+      lastRecording[jid] = now;
+      
+      // Send presence based on message type
+      const msg = m.message;
+      if (!msg) return;
+      
+      try {
+        if (msg.audioMessage || msg.voiceMessage) {
+          await Gifted.sendPresenceUpdate("recording", jid);
+          setTimeout(() => {
+            Gifted.sendPresenceUpdate("paused", jid).catch(() => {});
+          }, 2500);
+        } else {
+          await Gifted.sendPresenceUpdate("composing", jid);
+          setTimeout(() => {
+            Gifted.sendPresenceUpdate("paused", jid).catch(() => {});
+          }, 1800);
+        }
+      } catch (err) {
+        console.error("Presence send error:", err.message);
+      }
+      
+    } catch (err) {
+      // Silent fail
     }
   }
 });
