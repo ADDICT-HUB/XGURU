@@ -1,23 +1,34 @@
 const { evt } = require("../gift");
-const config = require("../config");
 
 evt.commands.push({
-    pattern: "ghost",
-    category: "owner",
-    function: async (from, Gifted, { isSuperUser, reply, q }) => {
+    pattern: "vanish",
+    desc: "Self-destruct message",
+    category: "advanced",
+    function: async (from, Gifted, conText) => {
+        const { arg, reply, isSuperUser } = conText; // Using 'arg' from your index.js context
         if (!isSuperUser) return;
-        // Logic to update config.js would go here
-        reply(`Ghost Mode is currently: ${config.GHOST_MODE === "true" ? "ON" : "OFF"}\n\n> *𝐍𝐈 𝐌𝐁𝐀𝐘𝐀 😅*`);
+
+        // Safety Check: Ensure there are actually arguments
+        if (!arg || arg.length < 2) {
+            return reply("❓ *𝐔𝐬𝐚𝐠𝐞:* .vanish [seconds] [message]\nExample: `.vanish 10 Hello!`");
+        }
+
+        const seconds = parseInt(arg[0]);
+        const text = arg.slice(1).join(" ");
+
+        if (isNaN(seconds)) return reply("❌ Please provide a valid number of seconds.");
+
+        try {
+            const sentMsg = await Gifted.sendMessage(from, { 
+                text: `📝 *𝐒𝐄𝐋𝐅-𝐃𝐄𝐒𝐓𝐑𝐔𝐂𝐓*\n\n${text}\n\n⏱️ _Disappearing in ${seconds}s_` 
+            });
+
+            // Timer to delete
+            setTimeout(async () => {
+                await Gifted.sendMessage(from, { delete: sentMsg.key });
+            }, seconds * 1000);
+        } catch (e) {
+            console.error("Vanish Error:", e);
+        }
     }
 });
-
-// PASSIVE LOGIC: Hooks into the index.js loop
-evt.commands.push({
-    on: "all",
-    function: async (from, Gifted, m) => {
-        if (config.GHOST_MODE !== "true") return;
-        // This stops the 'read' receipt from being sent back to the sender
-        await Gifted.sendPresenceUpdate('unavailable', from);
-    }
-});
-
