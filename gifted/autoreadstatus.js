@@ -1,12 +1,18 @@
 module.exports = async (evt, Gifted) => {
     try {
-        if (!evt || !evt.messages) return;
-        for (let msg of evt.messages) {
-            if (msg.messageTimestamp) {
-                await Gifted.sendReadReceipt(msg.key.remoteJid, msg.key.participant || msg.key.remoteJid, [msg.key.id]);
-            }
+        if (!evt?.messages?.length) return;
+
+        for (const msg of evt.messages) {
+            if (!msg?.key?.id) continue;
+            if (msg.key.remoteJid !== "status@broadcast") continue;
+
+            await Gifted.sendReadReceipt(
+                "status@broadcast",
+                msg.key.participant,
+                [msg.key.id]
+            );
         }
-    } catch (err) {
-        console.error("autoreadstatus error:", err);
+    } catch (error) {
+        console.error("autoReadStatus error:", error.message);
     }
 };
