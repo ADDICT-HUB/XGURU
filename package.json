@@ -1,68 +1,73 @@
 {
-  "name": "gifted-md",
-  "version": "5.0.0",
-  "description": "Gifted-Md, a Multi Device Whatsapp Bot to Enhance Whatsapp Communication Experience",
+  "name": "xguru-bot",
+  "version": "2.0.0",
+  "description": "XGURU WhatsApp Bot - Advanced Multi Device Whatsapp Bot by NI MBAYA",
   "main": "./index.js",
   "type": "commonjs",
   "engines": {
     "npm": "10.x",
-    "node": "22.x"
+    "node": "18.x"
   },
   "scripts": {
-    "start": "pm2-runtime index.js --name giftedmd",
-    "stop": "pm2 stop giftedmd",
-    "restart": "pm2 restart giftedmd"
+    "start": "pm2-runtime index.js --name xguru",
+    "stop": "pm2 stop xguru",
+    "restart": "pm2 restart xguru",
+    "test": "node index.js"
   },
   "keywords": [
-    "gifted-md",
+    "xguru",
     "whatsapp-bot",
-    "giftedtech"
+    "multi-device",
+    "ni-mbaya",
+    "gurutech"
   ],
-  "author": "GiftedTech",
+  "author": "NI MBAYA (GuruTech)",
   "license": "MIT",
   "dependencies": {
-    "@vitalets/google-translate-api": "^9.2.0",
-    "gifted-baileys": "2.0.0",
-    "gifted-btns": "^1.0.0",
-    "axios": "^1.2.5",
-    "acrcloud": "*",
-    "adm-zip": "*",
-    "google-tts-api": "*",
-    "body-parser": "latest",
-    "buffer": "*",
-    "dotenv": "*",
+    "gifted-baileys": "^2.0.0",
     "express": "^4.19.2",
-    "file-type": "17.1.6",
-    "ffmpeg-static": "*",
-    "fluent-ffmpeg": "*",
-    "@hapi/boom": "*",
-    "@ffmpeg-installer/ffmpeg": "*",
-    "stream": "*",
-    "form-data": "^4.0.1",
-    "fs": "^0.0.1-security",
-    "fs-extra": "^11.1.0",
-    "jimp": "*",
-    "sharp": "0.32.6",
-    "gifted-dls": "*",
-    "mime-types": "^2.1.35",
-    "moment-timezone": "^0.5.45",
+    "axios": "^1.6.0",
+    "pino": "^8.15.0",
+    "@hapi/boom": "^10.0.1",
+    "fs-extra": "^11.1.1",
+    "wa-sticker-formatter": "^4.3.2",
+    "google-tts-api": "^2.0.2",
+    "file-type": "^18.5.0",
+    "moment-timezone": "^0.5.43",
     "node-fetch": "^3.3.2",
-    "path": "latest",
-    "pg": "*",
-    "pino": "^7.0.5",
-    "pm2": "latest",
+    "fluent-ffmpeg": "^2.1.2",
+    "ffmpeg-static": "^5.2.0",
+    "sharp": "^0.33.2",
+    "jimp": "^0.22.10",
+    "form-data": "^4.0.0",
+    "pdfkit": "^0.14.0",
     "qrcode-terminal": "^0.12.0",
-    "sequelize": "*",
-    "sqlite3": "*",
-    "util": "*",
-    "wa-sticker-formatter": "*"
+    "dotenv": "^16.3.1",
+    "pm2": "^5.3.0",
+    "@vitalets/google-translate-api": "^9.2.0",
+    "body-parser": "^1.20.2",
+    "mime-types": "^2.1.35",
+    "sequelize": "^6.35.0",
+    "sqlite3": "^5.1.6",
+    "pg": "^8.11.3",
+    "adm-zip": "^0.5.10",
+    "acrcloud": "^1.4.0",
+    "gifted-btns": "^1.0.0",
+    "gifted-dls": "^1.0.0",
+    "buffer": "^6.0.3",
+    "stream": "^0.0.2",
+    "util": "^0.12.5",
+    "path": "^0.12.7"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mauricegift/gifted-md.git"
+    "url": "https://github.com/ADDICT-HUB/XGURU"
   },
   "bugs": {
-    "url": "https://github.com/mauricegift/gifted-md/issues"
+    "url": "https://github.com/ADDICT-HUB/XGURU/issues"
   },
-  "homepage": "https://github.com/mauricegift/gifted-md#readme"
+  "homepage": "https://github.com/ADDICT-HUB/XGURU#readme",
+  "devDependencies": {
+    "@types/node": "^20.8.0"
+  }
 }
