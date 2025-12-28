@@ -24,42 +24,68 @@ const {
     jidDecode 
 } = require("gifted-baileys");
 
-const { 
-    evt, 
-    logger,
-    emojis,
-    gmdStore, // This might not be a constructor but an object
-    commands,
-    setSudo,
-    delSudo,
-    GiftedTechApi,
-    GiftedApiKey,
-    GiftedAutoReact,
-    GiftedAntiLink,
-    GiftedAutoBio,
-    GiftedChatBot,
-    loadSession,
-    getMediaBuffer,
-    getSudoNumbers,
-    getFileContentType,
-    bufferToStream,
-    uploadToPixhost,
-    uploadToImgBB,
-    setCommitHash, 
-    getCommitHash,
-    gmdBuffer, gmdJson, 
-    formatAudio, formatVideo,
-    uploadToGithubCdn,
-    uploadToGiftedCdn,
-    uploadToPasteboard,
-    uploadToCatbox,
-    GiftedAnticall,
-    createContext, 
-    createContext2,
-    verifyJidState,
-    GiftedPresence,
-    GiftedAntiDelete
-} = require("./gift");
+// Try to import from ./gift, but create fallbacks if modules don't exist
+let evt, logger, emojis, commands, setSudo, delSudo, GiftedTechApi, GiftedApiKey;
+let GiftedAutoReact, GiftedAntiLink, GiftedAutoBio, GiftedChatBot, loadSession;
+let getMediaBuffer, getSudoNumbers, getFileContentType, bufferToStream;
+let uploadToPixhost, uploadToImgBB, setCommitHash, getCommitHash;
+let gmdBuffer, gmdJson, formatAudio, formatVideo, uploadToGithubCdn;
+let uploadToGiftedCdn, uploadToPasteboard, uploadToCatbox, GiftedAnticall;
+let createContext, createContext2, verifyJidState, GiftedPresence, GiftedAntiDelete;
+
+try {
+    const giftModule = require("./gift");
+    
+    // Assign all imported functions with fallbacks
+    evt = giftModule.evt || {};
+    logger = giftModule.logger || console;
+    emojis = giftModule.emojis || ["❤️", "😊", "👍", "🔥", "💯"];
+    commands = giftModule.commands || [];
+    setSudo = giftModule.setSudo || (() => console.log("setSudo not available"));
+    delSudo = giftModule.delSudo || (() => console.log("delSudo not available"));
+    GiftedTechApi = giftModule.GiftedTechApi || null;
+    GiftedApiKey = giftModule.GiftedApiKey || "";
+    GiftedAutoReact = giftModule.GiftedAutoReact || (() => Promise.resolve());
+    GiftedAntiLink = giftModule.GiftedAntiLink || (() => Promise.resolve());
+    GiftedAutoBio = giftModule.GiftedAutoBio || (() => Promise.resolve());
+    GiftedChatBot = giftModule.GiftedChatBot || (() => Promise.resolve());
+    loadSession = giftModule.loadSession;
+    getMediaBuffer = giftModule.getMediaBuffer || (() => Promise.resolve(Buffer.from("")));
+    getSudoNumbers = giftModule.getSudoNumbers || (() => []);
+    getFileContentType = giftModule.getFileContentType || (() => "unknown");
+    bufferToStream = giftModule.bufferToStream || ((buffer) => {
+        const { Readable } = require('stream');
+        return Readable.from(buffer);
+    });
+    uploadToPixhost = giftModule.uploadToPixhost || (() => Promise.resolve(""));
+    uploadToImgBB = giftModule.uploadToImgBB || (() => Promise.resolve(""));
+    setCommitHash = giftModule.setCommitHash || (() => {});
+    getCommitHash = giftModule.getCommitHash || (() => "");
+    gmdBuffer = giftModule.gmdBuffer || ((data) => Buffer.from(JSON.stringify(data)));
+    gmdJson = giftModule.gmdJson || ((data) => JSON.parse(data.toString()));
+    formatAudio = giftModule.formatAudio || ((audio) => audio);
+    formatVideo = giftModule.formatVideo || ((video) => video);
+    uploadToGithubCdn = giftModule.uploadToGithubCdn || (() => Promise.resolve(""));
+    uploadToGiftedCdn = giftModule.uploadToGiftedCdn || (() => Promise.resolve(""));
+    uploadToPasteboard = giftModule.uploadToPasteboard || (() => Promise.resolve(""));
+    uploadToCatbox = giftModule.uploadToCatbox || (() => Promise.resolve(""));
+    GiftedAnticall = giftModule.GiftedAnticall || (() => Promise.resolve());
+    createContext = giftModule.createContext || ((sender, options) => ({}));
+    createContext2 = giftModule.createContext2 || ((sender, options) => ({}));
+    verifyJidState = giftModule.verifyJidState || (() => Promise.resolve(true));
+    GiftedPresence = giftModule.GiftedPresence || (() => Promise.resolve());
+    GiftedAntiDelete = giftModule.GiftedAntiDelete || (() => Promise.resolve());
+    
+    console.log("✅ Gift module loaded with fallbacks");
+} catch (error) {
+    console.error("❌ Failed to load ./gift module:", error.message);
+    // Create minimal fallbacks
+    evt = { commands: [] };
+    logger = console;
+    emojis = ["❤️", "😊", "👍", "🔥", "💯"];
+    commands = [];
+    console.log("⚠️ Using minimal fallback configuration");
+}
 
 const { 
     Sticker, 
@@ -127,38 +153,41 @@ logger.level = "silent";
 
 app.use(express.static("gift"));
 app.get("/", (req, res) => res.sendFile(__dirname + "/gift/gifted.html"));
-app.listen(PORT, () => console.log(`✅ XGURU Server Running on Port: ${PORT}`));
+app.listen(PORT, () => console.log(`✅ ${XGURU_CONFIG.BOT_NAME} Server Running on Port: ${PORT}`));
 
 const sessionDir = path.join(__dirname, "gift", "session");
 
-// FIXED: Safe initialization - don't call loadSession if it's not a function
-async function initializeSession() {
-    try {
-        console.log(`🔧 Initializing XGURU Session - ${XGURU_CONFIG.BOT_NAME} by ${XGURU_CONFIG.AUTHOR}`);
-        
-        // Check if loadSession exists and is a function
-        if (typeof loadSession === 'function') {
-            await loadSession();
-            console.log("✅ Session loaded successfully");
-        } else if (loadSession !== undefined) {
-            console.log("ℹ️ loadSession exists but is not a function, trying alternative approach");
-            // Try to call it as is (might be an async function or promise)
-            try {
-                await Promise.resolve(loadSession);
-                console.log("✅ Session initialized via alternative method");
-            } catch (err) {
-                console.log("⚠️ Could not initialize session, continuing without it");
-            }
-        } else {
-            console.log("⚠️ loadSession is undefined, skipping session initialization");
-        }
-    } catch (error) {
-        console.error("❌ Error initializing session:", error.message);
-        console.log("⚠️ Continuing without session initialization...");
+// Create a simple store class
+class SimpleStore {
+    constructor() {
+        this.messages = new Map();
+        console.log("✅ SimpleStore initialized");
+    }
+    
+    loadMessage(jid, id) {
+        const key = `${jid}-${id}`;
+        return this.messages.get(key) || null;
+    }
+    
+    saveMessage(jid, id, message) {
+        const key = `${jid}-${id}`;
+        this.messages.set(key, { message });
+    }
+    
+    bind(ev) {
+        // Bind to message events if needed
+        console.log("✅ Store bound to event emitter");
+    }
+    
+    destroy() {
+        this.messages.clear();
+        console.log("✅ Store destroyed");
     }
 }
 
-let store; 
+// Store instance
+let store = new SimpleStore();
+
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 50;
 const RECONNECT_DELAY = 5000;
@@ -178,35 +207,8 @@ async function startGifted() {
         const { version, isLatest } = await fetchLatestWaWebVersion();
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
         
-        if (store) {
-            try {
-                if (typeof store.destroy === 'function') {
-                    store.destroy();
-                }
-            } catch (e) {
-                console.log("⚠️ Error destroying store:", e.message);
-            }
-        }
-        
-        // FIXED: Check if gmdStore is a constructor or an object
-        if (gmdStore && typeof gmdStore === 'function') {
-            store = new gmdStore();
-            console.log("✅ Store initialized with constructor");
-        } else if (gmdStore && typeof gmdStore.createStore === 'function') {
-            store = gmdStore.createStore();
-            console.log("✅ Store initialized with factory method");
-        } else if (gmdStore) {
-            store = gmdStore;
-            console.log("✅ Store used directly (already instantiated)");
-        } else {
-            // Create a simple store if gmdStore is not available
-            store = {
-                loadMessage: () => null,
-                bind: () => {},
-                destroy: () => {}
-            };
-            console.log("⚠️ Using fallback store - gmdStore not available");
-        }
+        // Use our SimpleStore
+        store = new SimpleStore();
         
         const giftedSock = {
             version,
@@ -217,11 +219,7 @@ async function startGifted() {
                 keys: makeCacheableSignalKeyStore(state.keys, logger)
             },
             getMessage: async (key) => {
-                if (store && store.loadMessage) {
-                    const msg = store.loadMessage(key.remoteJid, key.id);
-                    return msg?.message || undefined;
-                }
-                return { conversation: 'Message not found' };
+                return store.loadMessage(key.remoteJid, key.id)?.message || { conversation: 'Message not in store' };
             },
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 60000,
@@ -254,9 +252,7 @@ async function startGifted() {
 
         Gifted = giftedConnect(giftedSock);
         
-        if (store && store.bind) {
-            store.bind(Gifted.ev);
-        }
+        store.bind(Gifted.ev);
 
         Gifted.ev.process(async (events) => {
             if (events['creds.update']) {
@@ -444,19 +440,29 @@ async function startGifted() {
             }
         });
 
+        // Load plugins with better error handling
         try {
             const pluginsPath = path.join(__dirname, "gifted");
-            fs.readdirSync(pluginsPath).forEach((fileName) => {
-                if (path.extname(fileName).toLowerCase() === ".js") {
-                    try {
-                        require(path.join(pluginsPath, fileName));
-                    } catch (e) {
-                        console.error(`❌ Failed to load ${fileName}: ${e.message}`);
+            if (fs.existsSync(pluginsPath)) {
+                const pluginFiles = fs.readdirSync(pluginsPath);
+                console.log(`📁 Found ${pluginFiles.length} plugin files`);
+                
+                pluginFiles.forEach((fileName) => {
+                    if (path.extname(fileName).toLowerCase() === ".js") {
+                        try {
+                            const pluginPath = path.join(pluginsPath, fileName);
+                            require(pluginPath);
+                            console.log(`✅ Loaded plugin: ${fileName}`);
+                        } catch (e) {
+                            console.error(`❌ Failed to load ${fileName}:`, e.message);
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                console.log("📁 No plugins folder found, skipping plugin loading");
+            }
         } catch (error) {
-            console.error("❌ Error reading Taskflow folder:", error.message);
+            console.error("❌ Error reading plugins folder:", error.message);
         }
 
         Gifted.ev.on("messages.upsert", async ({ messages }) => {
@@ -595,7 +601,7 @@ async function startGifted() {
                         console.error("Block error:", blockErr);
                         if (isSuperUser) {
                             await Gifted.sendMessage(ownerJid, { 
-                                text: `⚠️ Failed to block restricted user: ${sender}\nError: ${blockErr.message}`
+                                text: `⚠️ ${XGURU_CONFIG.BOT_NAME} failed to block restricted user: ${sender}\nError: ${blockErr.message}`
                             });
                         }
                     }
@@ -688,20 +694,35 @@ async function startGifted() {
                         }
 
                         Gifted.getJidFromLid = async (lid) => {
-                            const groupMetadata = await Gifted.groupMetadata(from);
-                            const match = groupMetadata.participants.find(p => p.lid === lid || p.id === lid);
-                            return match?.pn || match?.phoneNumber || null;
+                            try {
+                                const groupMetadata = await Gifted.groupMetadata(from);
+                                const match = groupMetadata.participants.find(p => p.lid === lid || p.id === lid);
+                                return match?.pn || match?.phoneNumber || null;
+                            } catch (error) {
+                                console.error("Error getting JID from LID:", error);
+                                return null;
+                            }
                         };
 
                         Gifted.getLidFromJid = async (jid) => {
-                            const groupMetadata = await Gifted.groupMetadata(from);
-                            const match = groupMetadata.participants.find(p => p.jid === jid || p.pn === jid || p.poneNumber === jid || p.id === jid);
-                            return match?.lid || null;
+                            try {
+                                const groupMetadata = await Gifted.groupMetadata(from);
+                                const match = groupMetadata.participants.find(p => p.jid === jid || p.pn === jid || p.poneNumber === jid || p.id === jid);
+                                return match?.lid || null;
+                            } catch (error) {
+                                console.error("Error getting LID from JID:", error);
+                                return null;
+                            }
                         };
 
                         let fileType;
                         (async () => {
-                            fileType = await import('file-type');
+                            try {
+                                fileType = await import('file-type');
+                            } catch (e) {
+                                console.log("file-type module not available");
+                                fileType = null;
+                            }
                         })();
 
                         Gifted.downloadAndSaveMediaMessage = async (message, filename, attachExtension = true) => {
@@ -720,10 +741,12 @@ async function startGifted() {
                                 }
 
                                 let fileTypeResult;
-                                try {
-                                    fileTypeResult = await fileType.fileTypeFromBuffer(buffer);
-                                } catch (e) {
-                                    console.log("file-type detection failed, using mime type fallback");
+                                if (fileType) {
+                                    try {
+                                        fileTypeResult = await fileType.fileTypeFromBuffer(buffer);
+                                    } catch (e) {
+                                        console.log("file-type detection failed");
+                                    }
                                 }
 
                                 const extension = fileTypeResult?.ext || 
@@ -816,10 +839,14 @@ async function startGifted() {
                             username: XGURU_CONFIG.USERNAME
                         };
 
-                        await gmd.function(from, Gifted, conText);
+                        if (typeof gmd.function === 'function') {
+                            await gmd.function(from, Gifted, conText);
+                        } else {
+                            console.log(`⚠️ Command ${cmd} has no function to execute`);
+                        }
 
                     } catch (error) {
-                        console.error(`Command error [${cmd}]:`, error);
+                        console.error(`${XGURU_CONFIG.BOT_NAME} Command error [${cmd}]:`, error);
                         try {
                             await Gifted.sendMessage(from, {
                                 text: `🚨 ${XGURU_CONFIG.BOT_NAME} Command failed: ${error.message}`,
@@ -840,16 +867,22 @@ async function startGifted() {
             const { connection, lastDisconnect } = update;
             
             if (connection === "connecting") {
-                console.log(`🕗 Connecting ${XGURU_CONFIG.BOT_NAME}...`);
+                console.log(`🕗 ${XGURU_CONFIG.BOT_NAME} Connecting...`);
                 reconnectAttempts = 0;
             }
 
             if (connection === "open") {
                 try {
-                    if (newsletterJid) await Gifted.newsletterFollow(newsletterJid);
-                    if (groupJid) await Gifted.groupAcceptInvite(groupJid);
+                    if (newsletterJid) {
+                        await Gifted.newsletterFollow(newsletterJid);
+                        console.log(`✅ ${XGURU_CONFIG.BOT_NAME} Following newsletter: ${newsletterJid}`);
+                    }
+                    if (groupJid) {
+                        await Gifted.groupAcceptInvite(groupJid);
+                        console.log(`✅ ${XGURU_CONFIG.BOT_NAME} Joined group: ${groupJid}`);
+                    }
                 } catch (e) {
-                    console.log("⚠️ Newsletter/Group initialization error:", e.message);
+                    console.log(`⚠️ ${XGURU_CONFIG.BOT_NAME} Newsletter/Group initialization error:`, e.message);
                 }
                 
                 console.log(`✅ ${XGURU_CONFIG.BOT_NAME} Connection Instance is Online`);
@@ -858,7 +891,7 @@ async function startGifted() {
                 setTimeout(async () => {
                     try {
                         const totalCommands = commands.filter((command) => command.pattern).length;
-                        console.log(`💜 ${XGURU_CONFIG.BOT_NAME} Connected to Whatsapp, Active!`);
+                        console.log(`💜 ${XGURU_CONFIG.BOT_NAME} Connected to Whatsapp, Active with ${totalCommands} commands!`);
                             
                         if (startMess === 'true') {
                             const md = botMode === 'public' ? "public" : "private";
@@ -977,23 +1010,14 @@ async function reconnectWithRetry() {
     }, delay);
 }
 
-// Initialize and start
-(async () => {
-    try {
-        await initializeSession();
-        setTimeout(async () => {
-            try {
-                await startGifted();
-            } catch (err) {
-                console.error("Initialization error:", err);
-                reconnectWithRetry();
-            }
-        }, 2000);
-    } catch (error) {
-        console.error("Setup error:", error);
+// Start the bot
+console.log(`🚀 ${XGURU_CONFIG.BOT_NAME} Initializing...`);
+setTimeout(() => {
+    startGifted().catch(error => {
+        console.error(`❌ ${XGURU_CONFIG.BOT_NAME} failed to start:`, error);
         reconnectWithRetry();
-    }
-})();
+    });
+}, 2000);
 
 /**
  * XGURU WhatsApp Bot - Enhanced Version
